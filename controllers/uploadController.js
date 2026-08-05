@@ -20,7 +20,7 @@ const fileUpload = async (req, res = response) => {
 
     // 1. Validar tipos de carpetas/colecciones
     const tiposValidos = [
-        'projects', 
+        'doctors', 
     ];
     
     if (!tiposValidos.includes(tipo)) {

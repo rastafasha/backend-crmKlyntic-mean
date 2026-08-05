@@ -6,8 +6,8 @@ const getDoctors = async (req, res) => {
     try {
         const doctors = await Doctor.find()
             .sort({ createdAt: -1 })
-            .populate('category')
             .populate('pais')
+            // .populate('speciality')
         // .populate('DoctorType');
         //traemos las tareas en orden de ultima fecha
         doctors.sort((a, b) => b.createdAt - a.createdAt);
@@ -39,51 +39,28 @@ const getDoctorsByUser = async (req, res) => {
 };
 
 const createDoctor = async (req, res) => {
-    const { 
-        nombre,
-        apellido,
-        ciudad,
-        phone,
-        speciality, // Este es el texto/nombre de la especialidad que viene del body
-        email,
-        dondeSeEntero,
-        address,
-        terminos
-    } = req.body;
-
-    try {
-        // 1. Buscar si la especialidad ya existe por su nombre
-        let existeSpeciality = await Speciality.findOne({ nombre: speciality });
-
-        // 2. Si no existe, la creamos y la guardamos
-        if (!existeSpeciality) {
-            const nuevaEspecialidad = new Speciality({ nombre: speciality });
-            existeSpeciality = await nuevaEspecialidad.save();
-        }
-
-        // 3. Instanciar y guardar el doctor con la referencia de la especialidad
+     const uid = req.uid;
         const doctor = new Doctor({
-            usuario: req.uid, // Asegúrate de tener el uid disponible (ej. de un middleware)
-            ...req.body,
-            speciality: existeSpeciality._id // Reemplaza el texto por el ID de MongoDB
+            usuario: uid,
+            ...req.body
         });
-
-        const doctorDB = await doctor.save();
-
-        res.json({
-            ok: true,
-            doctor: doctorDB
-        });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            ok: false,
-            msg: 'Hable con el admin'
-        });
-    }
+    
+        try {
+    
+            const doctorDB = await doctor.save();
+    
+            res.json({
+                ok: true,
+                doctor: doctorDB
+            });
+    
+        } catch (error) {
+            res.status(500).json({
+                ok: false,
+                msg: 'Hable con el admin'
+            });
+        }
 };
-
 
 
 const getDoctor = async (req, res) => {
@@ -135,7 +112,7 @@ const updateDoctor = async (req, res) => {
 
         res.json({
             ok: true,
-            projectActualizado
+            doctorActualizado
         });
 
     } catch (error) {

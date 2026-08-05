@@ -3,19 +3,23 @@ const Schema = mongoose.Schema;
 
 const DoctorSchema = new mongoose.Schema(
   {
-    // Básico
-    nombre: { type: String, required: true, unique: true },
-    apellido: { type: String, required: true},
-    ciudad: { type: String, required: true },
+    // Básico landing
+    nombre: { type: String, required: false, unique: false },
+    apellido: { type: String, required: false},
+    ciudad: { type: String, required: false },
     phone: { type: String, required: false },
     speciality: { type: Schema.Types.ObjectId, ref: "speciality" },
     email: { type: String, required: false },
     rrss: { type: String, required: false },
-    dondeSeEntero: { type: String, required: true },
-    address: { type: String, required: true },
-    terminos: { type: String, required: true },
+    dondeSeEntero: { type: String, required: false },
+    address: { type: String, required: false },
+    terminos: { type: String, required: false },
 
+    // CRM
+    name: { type: String, required: false, unique: false },
+    ubicacion: { type: String, required: false },
     hasVisited: { type: Boolean, required: false, default: false }, // Corregido 'require' a 'required'
+    tipoClinica: { type: String, required: false },
 
     // Fechas corregidas a tipo Date para poder hacer reportes/filtros reales en el CRM
     dateVisita: { type: Date, required: false, default: Date.now },
