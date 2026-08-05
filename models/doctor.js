@@ -8,7 +8,7 @@ const DoctorSchema = new mongoose.Schema(
     apellido: { type: String, required: false},
     ciudad: { type: String, required: false },
     phone: { type: String, required: false },
-    speciality: { type: Schema.Types.ObjectId, ref: "speciality" },
+    speciality: { type: Schema.Types.ObjectId, ref: "Speciality" },
     email: { type: String, required: false },
     rrss: { type: String, required: false },
     dondeSeEntero: { type: String, required: false },

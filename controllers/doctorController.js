@@ -7,8 +7,7 @@ const getDoctors = async (req, res) => {
         const doctors = await Doctor.find()
             .sort({ createdAt: -1 })
             .populate('pais')
-            // .populate('speciality')
-        // .populate('DoctorType');
+            .populate('speciality');
         //traemos las tareas en orden de ultima fecha
         doctors.sort((a, b) => b.createdAt - a.createdAt);
 
@@ -17,6 +16,7 @@ const getDoctors = async (req, res) => {
             doctors
         });
     } catch (error) {
+        console.log(error);
         return res.status(500).json({ message: 'Error al obtener doctores' });
     }
 };
