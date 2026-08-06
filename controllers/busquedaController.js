@@ -80,7 +80,7 @@ const getDocumentosColeccion = async(req, res = response) => {
         case 'specialities':
             data = await Speciality.find({ nombre: regex });5
             break;
-        case 'projects':
+        case 'doctors':
             const specialities = await Speciality.find({ nombre: regex });
             const speciality = specialities.map(cat => cat._id);
 
@@ -120,7 +120,7 @@ const getDocumentosColeccion = async(req, res = response) => {
         default:
             return res.status(400).json({
                 ok: false,
-                msg: 'la tabla debe ser usuarios/speciality/projects/pais/clientes'
+                msg: 'la tabla debe ser usuarios/speciality/doctors/pais/clientes'
             });
     }
 

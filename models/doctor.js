@@ -18,8 +18,9 @@ const DoctorSchema = new mongoose.Schema(
     // CRM
     name: { type: String, required: false, unique: false },
     ubicacion: { type: String, required: false },
-    hasVisited: { type: Boolean, required: false, default: false }, // Corregido 'require' a 'required'
     tipoClinica: { type: String, required: false },
+    hasVisited: { type: Boolean, required: false, default: false }, // Corregido 'require' a 'required'
+    hasLaboratory: { type: Boolean, required: false },
 
     // Fechas corregidas a tipo Date para poder hacer reportes/filtros reales en el CRM
     dateVisita: { type: Date, required: false, default: Date.now },
@@ -38,7 +39,7 @@ const DoctorSchema = new mongoose.Schema(
       type: String, 
       required: false, 
       enum: ['TEST', 'SUSCRITO', 'PENDIENTE'],
-      default: 'TEST' 
+      default: 'PENDIENTE' 
     },
     // Si respondió (Seguimiento del Pipeline)
     // Cambiado a String para usarlo como estado dinámico en tu selector del CRM

@@ -55,6 +55,7 @@ const createDoctor = async (req, res) => {
             });
     
         } catch (error) {
+            console.log(error);
             res.status(500).json({
                 ok: false,
                 msg: 'Hable con el admin'
@@ -175,6 +176,33 @@ const listarProyectPorSpeciality = async (req, res) => {
 }
 
 
+const checkExistenceByName = async(req, res) => {
+    const { name } = req.params;
+
+    try {
+        const doctor = await Doctor.findOne({ name: name });
+
+        if (doctor) {
+            return res.json({
+                ok: true,
+                exists: true,
+                message: 'Project with this name already exists.'
+            });
+        } else {
+            return res.json({
+                ok: true,
+                exists: false,
+                message: 'No project found with this name.'
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            ok: false,
+            message: 'Server error while checking project existence.'
+        });
+    }
+}
 
 module.exports = {
     getDoctors,
@@ -184,7 +212,8 @@ module.exports = {
     deleteDoctor,
     updateDoctor,
     updateStatus,
-    listarProyectPorSpeciality
+    listarProyectPorSpeciality,
+    checkExistenceByName
 
 
 };

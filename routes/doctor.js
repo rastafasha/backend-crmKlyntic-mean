@@ -12,7 +12,8 @@ const {
     deleteDoctor,
     updateDoctor,
     updateStatus,
-    listarProyectPorSpeciality
+    listarProyectPorSpeciality,
+    checkExistenceByName
 } = require('../controllers/doctorController.js');
 
 const { validarJWT } = require('../middlewares/validar-jwt');
@@ -24,7 +25,8 @@ router.get('/',
     validarJWT, 
     getDoctors);
 router.get('/user/:id',   getDoctorsByUser);
-router.get('/speciality/:nombre',   listarProyectPorSpeciality);
+router.get('/speciality/:nombre', listarProyectPorSpeciality);
+router.get('/existencia/:name', checkExistenceByName);
 
 router.get('/:id',  
     validarJWT,
