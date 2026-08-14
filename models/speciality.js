@@ -8,4 +8,4 @@ var SpecialitySchema = Schema({
     updatedAt: { type: Date }
 });
 
-module.exports = mongoose.model('Speciality', SpecialitySchema);
+module.exports = mongoose.model('speciality', SpecialitySchema);

@@ -21,19 +21,7 @@ const actualizarImagen = async (tipo, id, nombreArchivo, campoDestino = null) =>
             return true;
             break;
 
-            const transferencia = await Transferencia.findById(id);
-            if (!transferencia) {
-                console.log('No es un transferencia por id');
-                return false;
-            }
-            if (transferencia.img) {
-                pathViejo = `./uploads/transferencias/${transferencia.img}`; // Corregido typo de variable 'driver'
-                borrarImagen(pathViejo);
-            }
-            transferencia.img = nombreArchivo;
-            await transferencia.save();
-            return true;
-            break;
+           
     }
 };
 

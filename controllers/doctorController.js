@@ -21,6 +21,23 @@ const getDoctors = async (req, res) => {
     }
 };
 
+const getDoctor = async (req, res) => {
+    try {
+        const doctor = await Doctor.findById(req.params.id)
+        .populate('speciality')
+        .populate('pais')
+
+        if (!doctor) return res.status(404).json({ msg: 'doctor not found' })
+        res.json({
+            ok: true,
+            doctor
+        });
+
+    } catch (error) {
+        return res.status(404).json({ msg: 'Doctor not found' })
+    }
+};
+
 const getDoctorsByUser = async (req, res) => {
     const uid = req.uid;
     try {
@@ -64,22 +81,7 @@ const createDoctor = async (req, res) => {
 };
 
 
-const getDoctor = async (req, res) => {
-    try {
-        const doctor = await Doctor.findById(req.params.id)
-        .populate('speciality')
-        .populate('pais')
 
-        if (!doctor) return res.status(404).json({ msg: 'doctor not found' })
-        res.json({
-            ok: true,
-            doctor
-        });
-
-    } catch (error) {
-        return res.status(404).json({ msg: 'Doctor not found' })
-    }
-};
 
 const deleteDoctor = async (req, res) => {
     try {
@@ -143,37 +145,37 @@ function updateStatus(req, res) {
 }
 
 const listarProyectPorSpeciality = async (req, res) => {
-    var nombre = req.params['nombre'];
-    // 1. CAPTURAR EL NUEVO FILTRO DE ESTADO DESDE LA QUERY URL
+    // Usar const en lugar de var es una mejor práctica
+    const nombre = req.params['nombre'];
     const estadoFilter = req.query.estado_seguimiento || null;
 
     try {
-        // First, find the category by name
         const Speciality = require('../models/speciality');
         const speciality = await Speciality.findOne({ nombre: nombre });
         
         if (!speciality) {
-            return res.status(404).json({ message: 'Speciality no encontrada' });
+            return res.status(404).json({ message: 'Especialidad no encontrada' });
         }
         
-        // 2. CONSTRUIR EL FILTRO DE BÚSQUEDA DINÁMICO
-        let doctorsFilter = { category: speciality._id };
+        // SOLUCIÓN: Cambiar 'category' por 'speciality' (o el nombre real del campo en tu modelo Doctor)
+        let doctorsFilter = { speciality: speciality._id };
 
-        // Si el usuario envió un estado, lo agregamos al filtro de la consulta
         if (estadoFilter) {
             doctorsFilter.estado_seguimiento = estadoFilter;
         }
         
-        // Then, find projects using the category's ObjectId and the filters
+        // Ejecutar la búsqueda con el filtro corregido
         const doctors = await Doctor.find(doctorsFilter)
             .populate('speciality')
             .populate('pais');
         
-        res.status(200).send({ doctors: doctors });
+        return res.status(200).json({ doctors: doctors });
     } catch (err) {
-        res.status(500).send({ error: err });
+        // Es más seguro enviar err.message para no exponer detalles internos del servidor
+        return res.status(500).json({ error: err.message || err });
     }
 }
+
 
 
 const checkExistenceByName = async(req, res) => {

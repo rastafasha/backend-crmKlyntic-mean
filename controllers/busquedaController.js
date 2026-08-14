@@ -9,7 +9,7 @@ const getTodo = async(req, res = response) => {
 
     // Si no viene búsqueda, usamos un string vacío en lugar de undefined
     const busqueda = req.params.busqueda || ''; 
-    const typeFilter = req.query.type || null;
+    const typeFilter = req.query.tipoClinica || null;
     const estadoFilter = req.query.estado_seguimiento || null; 
     // Si la búsqueda está vacía, hacemos que machee con todo (.*) en lugar de fallar
     const regexStr = busqueda === '' ? '.*' : busqueda;
@@ -27,14 +27,14 @@ const getTodo = async(req, res = response) => {
     const doctorsFilter = {
         $or: [
             { name: regex },
-            { direccion: regex },
+            { ubicacion: regex },
             { speciality: { $in: specialityIds } },
             { pais: { $in: paisIds } }
         ]
     };
     
     if (typeFilter) {
-        doctorsFilter.type = typeFilter;
+        doctorsFilter.tipoClinica = typeFilter;
     }
 
     // 2. APLICAR EL FILTRO DE ESTADO EN LA BÚSQUEDA GLOBAL DE PROYECTOS
@@ -64,7 +64,7 @@ const getDocumentosColeccion = async(req, res = response) => {
 
      const tabla = req.params.tabla;
     const busqueda = req.params.busqueda;
-    const typeFilter = req.query.type || null;
+    const typeFilter = req.query.tipoClinica || null;
     const estadoFilter = req.query.estado_seguimiento || null;
     
     // Si el parámetro es 'all', usamos una expresión regular que traiga todo
@@ -101,7 +101,7 @@ const getDocumentosColeccion = async(req, res = response) => {
             }
 
             if (typeFilter) {
-                doctorsFilter.type = typeFilter;
+                doctorsFilter.tipoClinica = typeFilter;
             }
             
             // Aplicamos el filtro de estado de manera limpia

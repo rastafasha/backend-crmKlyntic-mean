@@ -8,12 +8,13 @@ const DoctorSchema = new mongoose.Schema(
     apellido: { type: String, required: false},
     ciudad: { type: String, required: false },
     phone: { type: String, required: false },
-    speciality: { type: Schema.Types.ObjectId, ref: "Speciality" },
+    speciality: { type: Schema.Types.ObjectId, ref: "speciality" },
     email: { type: String, required: false },
     rrss: { type: String, required: false },
     dondeSeEntero: { type: String, required: false },
     address: { type: String, required: false },
     terminos: { type: String, required: false },
+    img: { type: String, required: false },
 
     // CRM
     name: { type: String, required: false, unique: false },
