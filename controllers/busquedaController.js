@@ -4,6 +4,7 @@ const Doctor = require('../models/doctor');
 const Speciality = require('../models/speciality');
 const Pais = require('../models/pais');
 const Cliente = require('../models/cliente');
+const Recurso = require('../models/recurso');
 
 const getTodo = async(req, res = response) => {
 
@@ -42,11 +43,12 @@ const getTodo = async(req, res = response) => {
         doctorsFilter.estado_seguimiento = estadoFilter;
     }
 
-    const [usuarios, doctors, speciality, clientes] = await Promise.all([
+    const [usuarios, doctors, speciality, clientes, recursos] = await Promise.all([
         Usuario.find({ username: regex }),
         Doctor.find(doctorsFilter).populate('speciality', 'nombre'),
         Speciality.find({ nombre: regex }),
         Cliente.find({ nombre: regex }),
+        Recurso.find({ titulo: regex }),
     ]);
     const searchPaises = Pais.find({ pais: regex });
 
@@ -56,6 +58,7 @@ const getTodo = async(req, res = response) => {
         doctors,
         speciality,
         clientes,
+        recursos,
         paises: await searchPaises
     });
 }
@@ -79,6 +82,8 @@ const getDocumentosColeccion = async(req, res = response) => {
             break;
         case 'specialities':
             data = await Speciality.find({ nombre: regex });5
+        case 'recursos':
+            data = await Recurso.find({ titulo: regex });5
             break;
         case 'doctors':
             const specialities = await Speciality.find({ nombre: regex });
