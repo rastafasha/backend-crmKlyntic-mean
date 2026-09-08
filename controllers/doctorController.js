@@ -81,18 +81,6 @@ const createDoctor = async (req, res) => {
 };
 
 
-
-
-const deleteDoctor = async (req, res) => {
-    try {
-        const doctor = await Doctor.findByIdAndDelete(req.params.id)
-        if (!doctor) return res.status(404).json({ msg: 'doctor not found' })
-        return res.sendStatus(204);
-    } catch (error) {
-        return res.status(404).json({ msg: 'doctor not found' })
-    }
-};
-
 const updateDoctor = async (req, res) => {
     const id = req.params.id;
     const uid = req.uid;
@@ -126,6 +114,18 @@ const updateDoctor = async (req, res) => {
         });
     }
 };
+
+const deleteDoctor = async (req, res) => {
+    try {
+        const doctor = await Doctor.findByIdAndDelete(req.params.id)
+        if (!doctor) return res.status(404).json({ msg: 'doctor not found' })
+        return res.sendStatus(204);
+    } catch (error) {
+        return res.status(404).json({ msg: 'doctor not found' })
+    }
+};
+
+
 
 
 function updateStatus(req, res) {

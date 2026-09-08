@@ -73,6 +73,7 @@ const startServer = async () => {
   app.use('/api/paises', require('./routes/pais'));
   app.use('/api/specialities', require('./routes/speciality'));
   app.use('/api/payments', require('./routes/payment'));
+  app.use('/api/recursos', require('./routes/recurso'));
 
 
 
