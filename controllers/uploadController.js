@@ -55,7 +55,7 @@ const fileUpload = async (req, res = response) => {
     }
 
     try {
-        // 5. Convertir el Buffer a Data URI (Evita usar el disco duro de Render)
+         // 5. Convertir el Buffer a Data URI
         const base64Image = Buffer.from(file.data).toString('base64');
         const dataURI = `data:${file.mimetype};base64,${base64Image}`;
 
@@ -64,20 +64,28 @@ const fileUpload = async (req, res = response) => {
             folder: `crmklyntic/uploads/${tipo}/`,
             public_id: uuidv4(),
             transformation: [
-                { width: 1000, crop: "limit" }, // Redimensiona si es gigante
-                { quality: "auto" },            // Compresión inteligente (ahorra mucho ancho de banda)
-                { fetch_format: "auto" }        // Entrega el mejor formato según el navegador del cliente
+                { width: 1000, crop: "limit" }, 
+                { quality: "auto" },            
+                { fetch_format: "auto" }        
             ]
         });
 
         const urlImagen = result.secure_url;
 
-        // 🛠️ CAPTURAMOS EL CAMPO DESTINO (Opcional, con fallback al comportamiento normal)
-        // Ejemplo: req.query.campo puede ser 'img' o 'img_hero'
-        const campoDestino = req.query.campo || null;
+        // 7. ACTUALIZACIÓN DIRECTA Y AISLADA (Reemplaza al helper problemático)
+        // Importa tu modelo de Doctor al inicio del archivo si no lo tienes:
+        // const Doctor = require('../models/doctor.model');
+        
+        const campoDestino = req.query.campo || 'img';
+        const updateQuery = { [campoDestino]: urlImagen };
 
-         // 7. Actualizar tu Base de Datos pasándole el campo específico
-        await actualizarImagen(tipo, id, urlImagen, campoDestino);
+        // Al usar findByIdAndUpdate con runValidators: false, obligamos al controlador
+        // a guardar la foto en Cloudinary e indexarla en Mongo sin validar nada más.
+        const Doctor = require('../models/doctor'); // Carga local del modelo
+        await Doctor.findByIdAndUpdate(id, updateQuery, { 
+            new: true, 
+            runValidators: false 
+        });
 
         res.json({
             ok: true,

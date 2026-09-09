@@ -12,7 +12,7 @@ const {
     deleteCliente,
     getClientesByUser,
     updateStatus,
-    listarClientePorCategoria
+    listarClientePorSpeciality
 } = require('../controllers/clienteController.js');
 
 const { validarJWT } = require('../middlewares/validar-jwt');
@@ -22,7 +22,7 @@ const { validarCampos } = require('../middlewares/validar-campos');
 
 router.get('/',  validarJWT, getClientes); 
 router.get('/user/:id', getClientesByUser);
-router.get('/category/:nombre', listarClientePorCategoria);
+router.get('/speciality/:nombre', listarClientePorSpeciality);
 
 router.get('/:id',  
     validarJWT,

@@ -1,15 +1,15 @@
 const { response } = require('express');
 const Cliente = require('../models/cliente');
-const Project = require('../models/project');
+const Doctor = require('../models/doctor');
+const Speciality = require('../models/speciality');
 
 
 const getClientes = async (req, res) => {
     try {
-        const clientes = await Project.find({status:true})
+        const clientes = await Cliente.find({status:true})
             .sort({ createdAt: -1 })
-            .populate('category')
+            .populate('speciality')
             .populate('pais')
-        // .populate('ProjectType');
         //traemos las tareas en orden de ultima fecha
         clientes.sort((a, b) => b.createdAt - a.createdAt);
 
@@ -68,7 +68,7 @@ const createCliente = async (req, res) => {
 const getCliente = async (req, res) => {
     try {
         const cliente = await Cliente.findById(req.params.id)
-        .populate('category')
+        .populate('speciality')
         .populate('pais')
 
         if (!cliente) return res.status(404).json({ msg: 'cliente not found' })
@@ -119,19 +119,18 @@ function updateStatus(req, res) {
     })
 }
 
-const listarClientePorCategoria = async (req, res) => {
+const listarClientePorSpeciality = async (req, res) => {
     var nombre = req.params['nombre'];
     try {
         // First, find the category by name
-        const Categoria = require('../models/categoria');
-        const categoria = await Categoria.findOne({ nombre: nombre });
+        const speciality = await Speciality.findOne({ nombre: nombre });
         
-        if (!categoria) {
+        if (!speciality) {
             return res.status(404).json({ message: 'Categoría no encontrada' });
         }
         
         // Then, find clientes using the category's ObjectId
-        const clientes = await Cliente.find({ category: categoria._id })
+        const clientes = await Cliente.find({ category: speciality._id })
             .populate('category')
             .populate('pais');
         
@@ -150,7 +149,7 @@ module.exports = {
     deleteCliente,
     getClientesByUser,
     updateStatus,
-    listarClientePorCategoria
+    listarClientePorSpeciality
 
 
 };
