@@ -6,10 +6,11 @@ const Speciality = require('../models/speciality');
 
 const getClientes = async (req, res) => {
     try {
-        const clientes = await Cliente.find({status:true})
+        const clientes = await Doctor.find({status:true})
             .sort({ createdAt: -1 })
             .populate('speciality')
             .populate('pais')
+        // .populate('ProjectType');
         //traemos las tareas en orden de ultima fecha
         clientes.sort((a, b) => b.createdAt - a.createdAt);
 
@@ -22,6 +23,7 @@ const getClientes = async (req, res) => {
         return res.status(500).json({ message: 'Error al obtener clientes' });
     }
 };
+
 const getClientesByUser = async (req, res) => {
     const uid = req.uid;
     try {
