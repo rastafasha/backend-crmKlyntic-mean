@@ -194,7 +194,7 @@ const enviarCampañaMasivaDoctores = async (req, res) => {
         await doc.save();
 
         exitos++;
-        console.log(`[CRM BULK] Enviado al Dr./Dra. ${doc.apellido}`);
+        console.log(`[CRM BULK] Enviado al Dr./Dra. ${doc.name}`);
         
         await delay(4000); // 4 segundos de descanso humano simulado
 
@@ -214,7 +214,7 @@ const enviarCampañaMasivaDoctores = async (req, res) => {
 /**
  * 5. PLANTILLA: Función aislada con tu diseño original adaptado a las variables del modelo de Doctor
  */
-function generarPlantillaHtml(nombre, apellido, parrafoIntroductorio) {
+function generarPlantillaHtml(name, apellido, parrafoIntroductorio) {
   return `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://w3.org">
 <html xmlns="http://w3.org">
@@ -263,7 +263,7 @@ function generarPlantillaHtml(nombre, apellido, parrafoIntroductorio) {
 											<table width="100%" border="0" cellspacing="0" cellpadding="0">
 												<tr>
 													<td style="padding: 40px 30px; background-color: #ffffff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
-														<h1 style="color: #1e293b; font-size: 20px; font-weight: 700; margin-top: 0; margin-bottom: 20px;">Estimado(a) Dr(a). ${apellido},</h1>
+														<h1 style="color: #1e293b; font-size: 20px; font-weight: 700; margin-top: 0; margin-bottom: 20px;">Estimado(a) Dr(a). ${name},</h1>
 														<p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">Espero que se encuentre muy bien.</p>
 														
 														<!-- Inyección dinámica del párrafo comercial de calle (HCC, Razetti o Briceño Rossi) -->

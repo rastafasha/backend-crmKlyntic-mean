@@ -7,24 +7,18 @@ const Cliente = require('../models/cliente');
 const Recurso = require('../models/recurso');
 
 const getTodo = async(req, res = response) => {
-
-    // Si no viene búsqueda, usamos un string vacío en lugar de undefined
     const busqueda = req.params.busqueda || ''; 
     const typeFilter = req.query.tipoClinica || null;
     const estadoFilter = req.query.estado_seguimiento || null; 
-    // Si la búsqueda está vacía, hacemos que machee con todo (.*) en lugar de fallar
     const regexStr = busqueda === '' ? '.*' : busqueda;
     const regex = new RegExp(regexStr, 'i');
 
-    // First, find categories that match the search
     const specialities = await Speciality.find({ nombre: regex });
     const specialityIds = specialities.map(cat => cat._id);
 
-    // Find matching pais
     const matchingPaises = await Pais.find({ pais: regex });
     const paisIds = matchingPaises.map(p => p._id);
 
-    // Then, find projects that match either name or category or pais in the list
     const doctorsFilter = {
         $or: [
             { name: regex },
@@ -38,7 +32,6 @@ const getTodo = async(req, res = response) => {
         doctorsFilter.tipoClinica = typeFilter;
     }
 
-    // 2. APLICAR EL FILTRO DE ESTADO EN LA BÚSQUEDA GLOBAL DE PROYECTOS
     if (estadoFilter) {
         doctorsFilter.estado_seguimiento = estadoFilter;
     }
@@ -64,13 +57,11 @@ const getTodo = async(req, res = response) => {
 }
 
 const getDocumentosColeccion = async(req, res = response) => {
-
-     const tabla = req.params.tabla;
+    const tabla = req.params.tabla;
     const busqueda = req.params.busqueda;
     const typeFilter = req.query.tipoClinica || null;
     const estadoFilter = req.query.estado_seguimiento || null;
     
-    // Si el parámetro es 'all', usamos una expresión regular que traiga todo
     const regexStr = busqueda === 'all' ? '.*' : busqueda;
     const regex = new RegExp(regexStr, 'i');
 
@@ -81,22 +72,22 @@ const getDocumentosColeccion = async(req, res = response) => {
             data = await Usuario.find({ username: regex });
             break;
         case 'specialities':
-            data = await Speciality.find({ nombre: regex });5
+            data = await Speciality.find({ nombre: regex });
+            break; // CORREGIDO: Añadido break y quitado el "5"
         case 'recursos':
-            data = await Recurso.find({ titulo: regex });5
-            break;
+            data = await Recurso.find({ titulo: regex });
+            break; // CORREGIDO: Quitado el "5"
         case 'doctors':
             const specialities = await Speciality.find({ nombre: regex });
-            const speciality = specialities.map(cat => cat._id);
+            const specialityIds = specialities.map(cat => cat._id); // CORREGIDO: se llamaba 'speciality' abajo pero aquí faltaba 'Ids'
 
             const matchingPaises = await Pais.find({ pais: regex });
             const paisIds = matchingPaises.map(p => p._id);
 
             let doctorsFilter = {};
 
-            // Si es una búsqueda real por texto, aplicamos el $or
             if (busqueda !== 'all') {
-                doctor5sFilter.$or = [
+                doctorsFilter.$or = [ // CORREGIDO: Se quitó el "5" de doctor5sFilter
                     { name: regex },
                     { ubicacion: regex },
                     { tipoMenu: regex },
@@ -109,11 +100,10 @@ const getDocumentosColeccion = async(req, res = response) => {
                 doctorsFilter.tipoClinica = typeFilter;
             }
             
-            // Aplicamos el filtro de estado de manera limpia
             if (estadoFilter) {
                 doctorsFilter.estado_seguimiento = estadoFilter;
             }
-5
+
             data = await Doctor.find(doctorsFilter).populate('speciality', 'nombre');
             break;
         case 'pais':
@@ -125,7 +115,7 @@ const getDocumentosColeccion = async(req, res = response) => {
         default:
             return res.status(400).json({
                 ok: false,
-                msg: 'la tabla debe ser usuarios/speciality/doctors/pais/clientes'
+                msg: 'la tabla debe ser usuarios/specialities/doctors/pais/clientes'
             });
     }
 
