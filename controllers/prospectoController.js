@@ -1,5 +1,11 @@
 const nodemailer = require('nodemailer');
 const Doctor = require('../models/doctor');
+const axios = require('axios'); 
+
+// Mapeamos las variables actuales de Render a la configuración de la API de Mailjet
+const MAILJET_API_KEY = process.env.SMTP_USER;  // Render leerá tu SMTP_USER como la API Key
+const MAILJET_SECRET_KEY = process.env.SMTP_PASS; // Render leerá tu SMTP_PASS como el Secret Key
+
 
 // Inicializar el transportador SMTP con las variables de Mailjet (.env)
 const transporter = nodemailer.createTransport({
@@ -99,36 +105,36 @@ const enviarCorreoIndividual = async (req, res) => {
 
     const htmlFinal = generarPlantillaHtml(doctor.name || '', doctor.apellido || '', parrafoIntroductorio);
 
-    const mailOptions = {
-      from: 'malcolmc@klyntic.com',
-      to: doctor.email_contacto || doctor.email,
-      replyTo: "mercadocreativo@gmail.com",
-      subject: `Doctor(a) ${doctor.name || ''}, optimice la gestión de su consultorio con nuestro Asistente de Voz 🎙️`,
-      html: htmlFinal,
-    };
+    // NUEVO: Definimos las variables necesarias para la API HTTP de Mailjet
+    const targetEmail = doctor.email_contacto || doctor.email;
+    const subjectLine = `Doctor(a) ${doctor.name || ''}, optimice la gestión de su consultorio con nuestro Asistente de Voz 🎙️`;
 
-    const info = await transporter.sendMail(mailOptions);
+    // NUEVO: Reemplazamos transporter.sendMail por la llamada a la API HTTP
+    const infoApi = await enviarCorreoViaAPI(targetEmail, doctor.name || 'Doctor', subjectLine, htmlFinal);
 
     // Actualizamos el pipeline comercial real del Doctor
     doctor.correo_sendit = true;
+    doctor.correo_enviado = true; // Marcamos como enviado para que el filtro funcione
     doctor.estado_seguimiento = 'CORREO_ENVIADO';
     await doctor.save();
 
     return res.json({
       ok: true,
       msg: `Invitación enviada con éxito al Dr./Dra. ${doctor.name || ''}`,
-      messageId: info.messageId
+      info: infoApi // Retornamos la respuesta de Mailjet
     });
 
   } catch (error) {
-    console.error("Error en enviarCorreoIndividual:", error);
-    return res.status(500).json({ ok: false, msg: "Error al procesar el envío individual desde el servidor" });
+    console.error("Error en enviarCorreoIndividual mediante API:", error.response ? error.response.data : error.message);
+    return res.status(500).json({ ok: false, msg: "Error al procesar el envío individual desde la API de Mailjet" });
   }
 };
+
 
 /**
  * 4. ENVÍO MASIVO (BULK): Dispara en cadena el lote diario respetando la cuota de Mailjet (Max 200)
  */
+
 const enviarCampañaMasivaDoctores = async (req, res) => {
   try {
     // 🎛️ CAPTURAMOS LOS CHECKS: Recibimos el array de IDs opcional enviado por Angular
@@ -167,7 +173,7 @@ const enviarCampañaMasivaDoctores = async (req, res) => {
       msg: `Campaña masiva iniciada en segundo plano para ${pendientes.length} médicos seleccionados.`,
     });
 
-    // Bucle secuencial controlado de 4 segundos por correo para proteger tu reputación de dominio
+    // Bucle secuencial controlado de 2 segundos por correo utilizando la API HTTP
     for (const doc of pendientes) {
       try {
         let parrafoIntroductorio = '';
@@ -183,37 +189,36 @@ const enviarCampañaMasivaDoctores = async (req, res) => {
 
         const htmlFinal = generarPlantillaHtml(doc.name || '', doc.apellido || '', parrafoIntroductorio);
 
-        const mailOptions = {
-          from: 'malcolmc@klyntic.com',
-          to: doc.email_contacto,
-          replyTo: "mercadocreativo@gmail.com",
-          subject: `Doctor(a) ${doc.name || ''}, optimice la gestión de su consultorio con nuestro Asistente de Voz 🎙️`,
-          html: htmlFinal,
-        };
+        // NUEVO: Definición de variables limpias para la llamada HTTP
+        const targetEmail = doc.email_contacto || doc.email;
+        const subjectLine = `Doctor(a) ${doc.name || ''}, optimice la gestión de su consultorio con nuestro Asistente de Voz 🎙️`;
 
-        await transporter.sendMail(mailOptions);
+        // NUEVO: Llamada directa a la API en vez del transportador SMTP viejo
+        await enviarCorreoViaAPI(targetEmail, doc.name || 'Doctor', subjectLine, htmlFinal);
 
         // Actualizamos los campos operativos del pipeline en caliente
         doc.correo_sendit = true;
+        doc.correo_enviado = true; // Aseguramos marcarlo como enviado para que salga de la cola
         doc.estado_seguimiento = 'CORREO_ENVIADO';
         await doc.save();
 
         exitos++;
-        console.log(`[CRM BULK] Enviado al Dr./Dra. ${doc.name}`);
+        console.log(`[CRM BULK API] Enviado con éxito al Dr./Dra. ${doc.name}`);
         
-        await delay(4000); // 4 segundos de descanso humano simulado
+        await delay(2000); // 2 segundos de descanso óptimo entre envíos web
 
       } catch (errSingle) {
-        console.error(`[CRM BULK ERROR] Falló para ${doc.email}:`, errSingle.message);
+        console.error(`[CRM BULK API ERROR] Falló para ${doc.email}:`, errSingle.message);
       }
     }
 
-    console.log(`[CRM BULK FINALIZADO] Proceso completo. Éxitos del lote: ${exitos}`);
+    console.log(`[CRM BULK API FINALIZADO] Proceso completo. Éxitos del lote: ${exitos}`);
 
   } catch (error) {
-    console.error("Error crítico en enviarCampañaMasivaDoctores:", error);
+    console.error("Error crítico en enviarCampañaMasivaDoctores API:", error);
   }
 };
+
 
 
 /**
@@ -317,6 +322,50 @@ function generarPlantillaHtml(name, apellido, parrafoIntroductorio) {
 </html>
   `;
 }
+
+/**
+ * Función auxiliar para enviar correos usando la API HTTP de Mailjet
+ */
+async function enviarCorreoViaAPI(toEmail, toName, subject, htmlBody) {
+  const url = 'https://api.mailjet.com/v3.1/send';
+  
+  // Codificamos las credenciales de forma segura para la petición web
+  const auth = Buffer.from(`${MAILJET_API_KEY}:${MAILJET_SECRET_KEY}`).toString('base64');
+
+  const data = {
+    Messages: [
+      {
+        From: {
+          Email: "malcolmc@klyntic.com",
+          Name: "Klyntic"
+        },
+        To: [
+          {
+            Email: toEmail,
+            Name: toName
+          }
+        ],
+        ReplyTo: {
+          Email: "mercadocreativo@gmail.com",
+          Name: "Soporte Klyntic"
+        },
+        Subject: subject,
+        HTMLPart: htmlBody
+      }
+    ]
+  };
+
+  const response = await axios.post(url, data, {
+    headers: {
+      'Authorization': `Basic ${auth}`,
+      'Content-Type': 'application/json'
+    },
+    timeout: 15000 
+  });
+
+  return response.data;
+}
+
 
 // Exportación formal de los 4 métodos unificados
 module.exports = {
