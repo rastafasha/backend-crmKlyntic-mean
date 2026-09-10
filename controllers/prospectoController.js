@@ -3,14 +3,20 @@ const Doctor = require('../models/doctor');
 
 // Inicializar el transportador SMTP con las variables de Mailjet (.env)
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT, 10) || 465,
-  secure: process.env.SMTP_PORT == 465, 
+  host: process.env.SMTP_HOST || 'in-v3.mailjet.com',
+  // Cambiamos a un puerto compatible con la nube (587)
+  port: parseInt(process.env.SMTP_PORT, 10) || 587,
+  // IMPORTANTE: En el puerto 587 'secure' DEBE SER false. 
+  // NodeMailer usará TLS automáticamente (STARTTLS) para proteger la conexión.
+  secure: false, 
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+  // Opcional: Aumentar el timeout por si la red de la nube está lenta
+  connectionTimeout: 10000, // 10 segundos
 });
+
 
 
 /**
