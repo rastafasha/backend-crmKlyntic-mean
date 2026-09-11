@@ -1,6 +1,6 @@
 const nodemailer = require('nodemailer');
 const Doctor = require('../models/doctor');
-const axios = require('axios'); 
+const axios = require('axios');
 
 // Mapeamos las variables actuales de Render a la configuración de la API de Mailjet
 const MAILJET_API_KEY = process.env.SMTP_USER;  // Render leerá tu SMTP_USER como la API Key
@@ -33,7 +33,7 @@ const transporter = nodemailer.createTransport({
 const obtenerDoctoresCRM = async (req, res) => {
   try {
     const { ubicacion, enviado } = req.query;
-    
+
     // 💡 PAGINACIÓN DINÁMICA:
     // Capturamos 'desde' (cuántos saltar) y 'limite' (cuántos traer). 
     // Si el frontend no manda nada, por defecto arranca en 0 y trae 6 por página.
@@ -52,13 +52,13 @@ const obtenerDoctoresCRM = async (req, res) => {
 
     // 🚀 EJECUCIÓN EN PARALELO (Promise.all):
     // Hacemos la búsqueda paginada y la cuenta total del universo al mismo tiempo.
-    const [ doctors, totalReal ] = await Promise.all([
+    const [doctors, totalReal] = await Promise.all([
       Doctor.find(query)
-            .populate('speciality') // Tu populate clave para que funcione el filtro por nombre
-            .skip(desde)            // Se salta los de las páginas anteriores (ej: si estás en pág 2, salta 6)
-            .limit(limite)          // Trae el bloque exacto pedido por Angular
-            .sort({ createdAt: -1 }),
-            
+        .populate('speciality') // Tu populate clave para que funcione el filtro por nombre
+        .skip(desde)            // Se salta los de las páginas anteriores (ej: si estás en pág 2, salta 6)
+        .limit(limite)          // Trae el bloque exacto pedido por Angular
+        .sort({ createdAt: -1 }),
+
       Doctor.countDocuments(query)  // Cuenta cuántos médicos CUMPLEN con ese filtro en TODA la BD
     ]);
 
@@ -138,12 +138,12 @@ const enviarCorreoIndividual = async (req, res) => {
 const enviarCampañaMasivaDoctores = async (req, res) => {
   try {
     // 🎛️ CAPTURAMOS LOS CHECKS: Recibimos el array de IDs opcional enviado por Angular
-    const { ids } = req.body; 
+    const { ids } = req.body;
 
     // Definimos el criterio de búsqueda base e inteligente (evita correos vacíos)
-    let query = { 
+    let query = {
       correo_enviado: false,
-      email: { $exists: true, $ne: "" } 
+      email: { $exists: true, $ne: "" }
     };
 
     // 💡 SI EL USUARIO USÓ LOS CHECKS EN ANGULAR: 
@@ -154,13 +154,13 @@ const enviarCampañaMasivaDoctores = async (req, res) => {
 
     // Ejecutamos la búsqueda inyectando el populate de especialidad y el límite estricto de cuota de Mailjet
     const pendientes = await Doctor.find(query)
-                                   .populate('speciality')
-                                   .limit(200);
+      .populate('speciality')
+      .limit(200);
 
     if (pendientes.length === 0) {
-      return res.status(200).json({ 
-        ok: true, 
-        msg: "No se encontraron médicos con correo electrónico pendientes para el lote seleccionado hoy." 
+      return res.status(200).json({
+        ok: true,
+        msg: "No se encontraron médicos con correo electrónico pendientes para el lote seleccionado hoy."
       });
     }
 
@@ -204,7 +204,7 @@ const enviarCampañaMasivaDoctores = async (req, res) => {
 
         exitos++;
         console.log(`[CRM BULK API] Enviado con éxito al Dr./Dra. ${doc.name}`);
-        
+
         await delay(2000); // 2 segundos de descanso óptimo entre envíos web
 
       } catch (errSingle) {
@@ -260,42 +260,55 @@ function generarPlantillaHtml(name, apellido, parrafoIntroductorio) {
 									<tr>
 										<td>
 											<!-- Header -->
-											<table width="100%" border="0" cellspacing="0" cellpadding="0">
-												<tr>
-													<td class="gradient" style="padding: 35px 20px; text-align: center;">
-														<div style="color: #ffffff; font-size: 26px; font-weight: bold; letter-spacing: 1px; margin: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">KLYNTIC</div>
-														<div style="color: #e0e7ff; font-size: 13px; margin-top: 5px; text-transform: uppercase; letter-spacing: 2px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">Asistente de Voz Clínico</div>
-													</td>
-												</tr>
-											</table>
-											
-											<!-- Main Content -->
-											<table width="100%" border="0" cellspacing="0" cellpadding="0">
-												<tr>
-													<td style="padding: 40px 30px; background-color: #ffffff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
-														<h1 style="color: #1e293b; font-size: 20px; font-weight: 700; margin-top: 0; margin-bottom: 20px;">Estimado(a) Dr(a). ${name},</h1>
-														<p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">Espero que se encuentre muy bien.</p>
-														
-														<!-- Inyección dinámica del párrafo comercial de calle (HCC, Razetti o Briceño Rossi) -->
-														<p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">${parrafoIntroductorio}</p>
-														
-														<p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">Quiero presentarle formalmente <strong>Klyntic</strong>, un ecosistema especializado que integra un potente asistente de voz para automatizar la gestión administrativa de su consultorio:</p>
-														
-														<!-- Bullet Box -->
-														<div style="background-color: #f8fafc; border-radius: 8px; padding: 20px; margin-bottom: 25px; border: 1px solid #f1f5f9;">
-															<div style="font-size: 14px; color: #334155; margin-bottom: 12px; position: relative; padding-left: 15px;">• <strong>Comandos de Voz:</strong> Cree pacientes, agilice historias y estructure presupuestos dictándole al sistema en tiempo real.</div>
-															<div style="font-size: 14px; color: #334155; margin-bottom: 12px; position: relative; padding-left: 15px;">• <strong>Gestión de Citas:</strong> Automatice la atención y el control de su agenda de forma fluida.</div>
-															<div style="font-size: 14px; color: #334155; position: relative; padding-left: 15px;">• <strong>Módulo Dental por Voz:</strong> Registro de odontogramas completos mediante comandos de voz estructurados si maneja el área dental.</div>
-														</div>
-														
-														<p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">Le invito a visitar nuestra web renovada para ver las demostraciones en video. Por formar parte del directorio de la clínica, tiene disponible un <strong>periodo de prueba de 7 días sin costo alguno</strong>.</p>
-														
-														<div style="text-align: center; margin: 30px 0 10px 0;">
-															<a href="https://klyntic.com" target="_blank" class="btn-primary">Ver Demostraciones y Probar Gratis</a>
-														</div>
-													</td>
-												</tr>
-											</table>
+                      <!-- Cabecera con Logotipo Oficial -->
+                          <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff;">
+                            <tr>
+                              <td align="center" style="padding: 30px 20px; background-color: #ffffff; border-bottom: 1px solid #f1f5f9;">
+                                <a href="https://klyntic.com" target="_blank" style="text-decoration: none; display: inline-block;">
+                                  <img src="https://consultorio.klyntic.com/assets/img/logoklyntic.png" width="130" height="auto" border="0" alt="Klyntic" style="display: block; font-family: sans-serif; font-size: 20px; color: #6366f1; font-weight: bold;" />
+                                </a>
+                              </td>
+                            </tr>
+                          </table>
+
+                          <!-- Main Content -->
+                          <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                            <tr>
+                              <td style="padding: 40px 30px; background-color: #ffffff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+                                <h1 style="color: #1e293b; font-size: 20px; font-weight: 700; margin-top: 0; margin-bottom: 20px;">Estimado(a) Dr(a). ${name},</h1>
+                                <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">Espero que se encuentre muy bien.</p>
+                                
+                                <!-- Inyección dinámica del párrafo comercial de calle (HCC, Razetti o Briceño Rossi) -->
+                                <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">${parrafoIntroductorio}</p>
+                                
+                                <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">Quiero presentarle formalmente <strong>Klyntic</strong>, un ecosistema especializado que integra un potente asistente de voz para automatizar la gestión administrativa de su consultorio:</p>
+                                
+                                <!-- Bullet Box Estructurado para Gmail -->
+                                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; border-radius: 8px; margin-bottom: 25px; border: 1px solid #f1f5f9;">
+                                  <tr>
+                                    <td style="padding: 20px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+                                      <div style="font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 12px;">
+                                        • <strong>Comandos de Voz:</strong> Cree pacientes, agilice historias y estructure presupuestos dictándole al sistema en tiempo real.
+                                      </div>
+                                      <div style="font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 12px;">
+                                        • <strong>Gestión de Citas:</strong> Automatice la atención y el control de su agenda de forma fluida.
+                                      </div>
+                                      <div style="font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 0;">
+                                        • <strong>Módulo Dental por Voz:</strong> Registro de odontogramas completos mediante comandos de voz estructurados si maneja el área dental.
+                                      </div>
+                                    </td>
+                                  </tr>
+                                </table>
+                                
+                                <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">Le invito a visitar nuestra web renovada para ver las demostraciones en video. Por formar parte del directorio de la clínica, tiene disponible un <strong>periodo de prueba de 7 días sin costo alguno</strong> [0.1.7].</p>
+                                
+                                <div style="text-align: center; margin: 30px 0 10px 0;">
+                                  <a href="https://klyntic.com" target="_blank" class="btn-primary">Ver Demostraciones y Probar Gratis</a>
+                                </div>
+                              </td>
+                            </tr>
+                          </table>
+
 											
 											<!-- Footer -->
 											<table width="100%" border="0" cellspacing="0" cellpadding="0">
@@ -328,7 +341,7 @@ function generarPlantillaHtml(name, apellido, parrafoIntroductorio) {
 async function registrarRemitenteEnMailjet() {
   const url = 'https://api.mailjet.com/v3/sender';
   const auth = Buffer.from(`${process.env.SMTP_USER}:${process.env.SMTP_PASS}`).toString('base64');
-  
+
   try {
     const response = await axios.post(url, { Email: "malcolmc@klyntic.com" }, {
       headers: { 'Authorization': `Basic ${auth}`, 'Content-Type': 'application/json' }
@@ -353,7 +366,7 @@ registrarRemitenteEnMailjet();
  */
 async function enviarCorreoViaAPI(toEmail, toName, subject, htmlBody) {
   const url = 'https://api.mailjet.com/v3.1/send';
-  
+
   // Codificamos las credenciales de forma segura para la petición web
   const auth = Buffer.from(`${MAILJET_API_KEY}:${MAILJET_SECRET_KEY}`).toString('base64');
 
@@ -385,7 +398,7 @@ async function enviarCorreoViaAPI(toEmail, toName, subject, htmlBody) {
       'Authorization': `Basic ${auth}`,
       'Content-Type': 'application/json'
     },
-    timeout: 15000 
+    timeout: 15000
   });
 
   return response.data;
