@@ -335,15 +335,17 @@ async function registrarRemitenteEnMailjet() {
     });
     console.log("[MAILJET] Remitente registrado con éxito:", response.data);
   } catch (error) {
-    // MODIFICACIÓN CRUCIAL: Convertimos el error a texto plano legible para los logs de Render
     if (error.response) {
-      console.error("[MAILJET ERROR DETALLADO]:", JSON.stringify(error.response.data, null, 2));
+      // Pintamos el código de estado (Ej: 401, 403) que nunca miente
+      console.error("[MAILJET STATUS CODE]:", error.response.status);
+      console.error("[MAILJET DATA RAW]:", error.response.data);
     } else {
       console.error("[MAILJET ERROR]:", error.message);
     }
   }
 }
 registrarRemitenteEnMailjet();
+
 
 
 /**
