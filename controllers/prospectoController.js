@@ -335,12 +335,16 @@ async function registrarRemitenteEnMailjet() {
     });
     console.log("[MAILJET] Remitente registrado con éxito:", response.data);
   } catch (error) {
-    console.error("[MAILJET ERROR] Al registrar remitente:", error.response ? error.response.data : error.message);
+    // MODIFICACIÓN CRUCIAL: Convertimos el error a texto plano legible para los logs de Render
+    if (error.response) {
+      console.error("[MAILJET ERROR DETALLADO]:", JSON.stringify(error.response.data, null, 2));
+    } else {
+      console.error("[MAILJET ERROR]:", error.message);
+    }
   }
 }
-
-// Ejecutar la función automáticamente al iniciar el servidor
 registrarRemitenteEnMailjet();
+
 
 /**
  * Función auxiliar para enviar correos usando la API HTTP de Mailjet
