@@ -103,14 +103,14 @@ const enviarCorreoIndividual = async (req, res) => {
       parrafoIntroductorio = `A raíz de nuestro reciente acercamiento a las consultas de la <strong>Clínica Briceño Rossi</strong>, queremos presentarle una solución diseñada para optimizar los flujos de tiempo y eliminar la transcripción manual en su práctica médica diaria.`;
     }
 
-    const htmlFinal = generarPlantillaHtml(doctor.name || '', doctor.apellido || '', parrafoIntroductorio);
+    const htmlFinal = generarPlantillaHtml(doctor.name || doctor.nombre || '', doctor.apellido || '', parrafoIntroductorio);
 
     // NUEVO: Definimos las variables necesarias para la API HTTP de Mailjet
     const targetEmail = doctor.email_contacto || doctor.email;
-    const subjectLine = `Doctor(a) ${doctor.name || ''}, optimice la gestión de su consultorio con nuestro Asistente de Voz 🎙️`;
+    const subjectLine = `Doctor(a) ${doctor.name || doctor.nombre || ''}, optimice la gestión de su consultorio con nuestro Asistente de Voz 🎙️`;
 
     // NUEVO: Reemplazamos transporter.sendMail por la llamada a la API HTTP
-    const infoApi = await enviarCorreoViaAPI(targetEmail, doctor.name || 'Doctor', subjectLine, htmlFinal);
+    const infoApi = await enviarCorreoViaAPI(targetEmail, doctor.name || doctor.nombre || 'Doctor', subjectLine, htmlFinal);
 
     // Actualizamos el pipeline comercial real del Doctor
     doctor.correo_sendit = true;
@@ -119,7 +119,7 @@ const enviarCorreoIndividual = async (req, res) => {
 
     return res.json({
       ok: true,
-      msg: `Invitación enviada con éxito al Dr./Dra. ${doctor.name || ''}`,
+      msg: `Invitación enviada con éxito al Dr./Dra. ${doctor.name || doctor.nombre || ''}`,
       info: infoApi // Retornamos la respuesta de Mailjet
     });
 
@@ -186,22 +186,22 @@ const enviarCampañaMasivaDoctores = async (req, res) => {
           parrafoIntroductorio = `A raíz de nuestro reciente acercamiento a las consultas de la <strong>Clínica Briceño Rossi</strong>, queremos presentarle una solución diseñada para optimizar los flujos de tiempo y eliminar la transcripción manual en su práctica médica diaria.`;
         }
 
-        const htmlFinal = generarPlantillaHtml(doc.name || '', doc.apellido || '', parrafoIntroductorio);
+        const htmlFinal = generarPlantillaHtml(doc.name ||  doc.nombre || '', doc.apellido || '', parrafoIntroductorio);
 
         // NUEVO: Definición de variables limpias para la llamada HTTP
         const targetEmail = doc.email_contacto || doc.email;
-        const subjectLine = `Doctor(a) ${doc.name || ''}, optimice la gestión de su consultorio con nuestro Asistente de Voz 🎙️`;
+        const subjectLine = `Doctor(a) ${doc.name || doc.nombre || ''}, optimice la gestión de su consultorio con nuestro Asistente de Voz 🎙️`;
 
         // NUEVO: Llamada directa a la API en vez del transportador SMTP viejo
-        await enviarCorreoViaAPI(targetEmail, doc.name || 'Doctor', subjectLine, htmlFinal);
+        await enviarCorreoViaAPI(targetEmail, doc.name || doc.nombre || 'Doctor', subjectLine, htmlFinal);
 
         // Actualizamos los campos operativos del pipeline en caliente
         doc.correo_sendit = true; // Aseguramos marcarlo como enviado para que salga de la cola
         doc.estado_seguimiento = 'CORREO_ENVIADO';
         await doc.save();
-
+        
         exitos++;
-        console.log(`[CRM BULK API] Enviado con éxito al Dr./Dra. ${doc.name}`);
+        console.log(`[CRM BULK API] Enviado con éxito al Dr./Dra. ${doc.name || doc.nombre || ''}`);
 
         await delay(2000); // 2 segundos de descanso óptimo entre envíos web
 
@@ -222,7 +222,7 @@ const enviarCampañaMasivaDoctores = async (req, res) => {
 /**
  * 5. PLANTILLA: Función aislada con tu diseño original adaptado a las variables del modelo de Doctor
  */
-function generarPlantillaHtml(name, apellido, parrafoIntroductorio) {
+function generarPlantillaHtml(name, nombre, apellido, parrafoIntroductorio) {
   return `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://w3.org">
 <html xmlns="http://w3.org">
@@ -259,62 +259,60 @@ function generarPlantillaHtml(name, apellido, parrafoIntroductorio) {
 										<td>
 											<!-- Header -->
                       <!-- Cabecera con Logotipo Oficial -->
-<table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff;">
-	<tr>
-		<td align="center" style="padding: 30px 20px; background-color: #ffffff; border-bottom: 1px solid #f1f5f9;">
-			<a href="https://klyntic.com" target="_blank" style="text-decoration: none; display: inline-block;">
-				<img src="https://consultorio.klyntic.com/assets/img/logoklyntic.png" width="130" height="auto" border="0" alt="Klyntic" style="display: block; font-family: sans-serif; font-size: 20px; color: #6366f1; font-weight: bold;" />
-			</a>
-		</td>
-	</tr>
-</table>
+                      <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff;">
+                        <tr>
+                          <td align="center" style="padding: 30px 20px; background-color: #ffffff; border-bottom: 1px solid #f1f5f9;">
+                            <a href="https://klyntic.com" target="_blank" style="text-decoration: none; display: inline-block;">
+                              <img src="https://consultorio.klyntic.com/assets/img/logoklyntic.png" width="130" height="auto" border="0" alt="Klyntic" style="display: block; font-family: sans-serif; font-size: 20px; color: #6366f1; font-weight: bold;" />
+                            </a>
+                          </td>
+                        </tr>
+                      </table>
 
-<!-- Main Content -->
-<table width="100%" border="0" cellspacing="0" cellpadding="0">
-	<tr>
-		<td style="padding: 40px 30px; background-color: #ffffff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
-			<h1 style="color: #1e293b; font-size: 20px; font-weight: 700; margin-top: 0; margin-bottom: 20px;">Estimado(a) Dr(a). ${name},</h1>
-			<p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">Espero que se encuentre muy bien.</p>
-			
-			<!-- Párrafo de autoridad basado en el HCC y testimonios reales -->
-			<p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
-				Le escribo porque actualmente estamos expandiendo el uso de <strong>Klyntic</strong>, un ecosistema de Inteligencia Artificial que ya opera con éxito en consulta real y está siendo utilizado por especialistas en el <strong>Anexo del Hospital de Clínicas Caracas (HCC)</strong> para eliminar por completo la transcripción manual de las consultas.
-			</p>
-			
-			<p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
-				Diseñamos esta solución específicamente para automatizar la gestión administrativa y clínica de su consultorio mediante un potente asistente de voz, permitiéndole enfocarse al 100% en el paciente sin tocar el teclado:
-			</p>
-			
-			<!-- Bullet Box Estructurado para Gmail -->
-			<table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; border-radius: 8px; margin-bottom: 25px; border: 1px solid #f1f5f9;">
-				<tr>
-					<td style="padding: 20px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
-						<div style="font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 12px;">
-							• <strong>Comandos de Voz:</strong> Cree pacientes, agilice historias y estructure presupuestos dictándole al sistema en tiempo real.
-						</div>
-						<div style="font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 12px;">
-							• <strong>Gestión de Citas por WhatsApp:</strong> Automatice la atención de la agenda y reduzca drásticamente las inasistencias de pacientes.
-						</div>
-						<div style="font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 0;">
-							• <strong>Módulo Dental/Estético por Voz:</strong> Registro de planes de tratamiento y odontogramas completos mediante comandos de voz estructurados.
-						</div>
-					</td>
-				</tr>
-			</table>
-			
-			<p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
-				Le invito a visitar nuestra web para conocer los testimonios de sus colegas y ver las demostraciones en video. Esta semana estamos habilitando únicamente <strong>5 accesos de cortesía en el sector con un periodo de prueba de 7 días sin costo alguno</strong>.
-			</p>
-			
-			<div style="text-align: center; margin: 30px 0 10px 0;">
-				<a href="https://klyntic.com" target="_blank" class="btn-primary">Ver Testimonios y Probar Gratis</a>
-			</div>
-		</td>
-	</tr>
-</table>
+                      <!-- Main Content -->
+                      <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                        <tr>
+                          <td style="padding: 40px 30px; background-color: #ffffff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+                            <h1 style="color: #1e293b; font-size: 20px; font-weight: 700; margin-top: 0; margin-bottom: 20px;">Estimado(a) Dr(a). ${name || nombre},</h1>
+                            <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">Espero que se encuentre muy bien.</p>
+                            
+                            <!-- Párrafo de autoridad basado en el HCC y testimonios reales -->
+                            <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
+                              Le escribo porque actualmente estamos expandiendo el uso de <strong>Klyntic</strong>, un ecosistema de Inteligencia Artificial que ya opera con éxito en consulta real y está siendo utilizado por especialistas en el <strong>Anexo del Hospital de Clínicas Caracas (HCC)</strong> para eliminar por completo la transcripción manual de las consultas.
+                            </p>
+                            
+                            <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
+                              Diseñamos esta solución específicamente para automatizar la gestión administrativa y clínica de su consultorio mediante un potente asistente de voz, permitiéndole enfocarse al 100% en el paciente sin tocar el teclado:
+                            </p>
+                            
+                            <!-- Bullet Box Estructurado para Gmail -->
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; border-radius: 8px; margin-bottom: 25px; border: 1px solid #f1f5f9;">
+                              <tr>
+                                <td style="padding: 20px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+                                  <div style="font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 12px;">
+                                    • <strong>Comandos de Voz:</strong> Cree pacientes, agilice historias y estructure presupuestos dictándole al sistema en tiempo real.
+                                  </div>
+                                  <div style="font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 12px;">
+                                    • <strong>Gestión de Citas por WhatsApp:</strong> Automatice la atención de la agenda y reduzca drásticamente las inasistencias de pacientes.
+                                  </div>
+                                  <div style="font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 0;">
+                                    • <strong>Módulo Dental/Estético por Voz:</strong> Registro de planes de tratamiento y odontogramas completos mediante comandos de voz estructurados.
+                                  </div>
+                                </td>
+                              </tr>
+                            </table>
+                            
+                            <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
+                              Le invito a visitar nuestra web para conocer los testimonios de sus colegas y ver las demostraciones en video. Esta semana estamos habilitando únicamente <strong>5 accesos de cortesía en el sector con un periodo de prueba de 7 días sin costo alguno</strong>.
+                            </p>
+                            
+                            <div style="text-align: center; margin: 30px 0 10px 0;">
+                              <a href="https://klyntic.com" target="_blank" class="btn-primary">Ver Testimonios y Probar Gratis</a>
+                            </div>
+                          </td>
+                        </tr>
+                      </table>
 
-
-											
 											<!-- Footer -->
 											<table width="100%" border="0" cellspacing="0" cellpadding="0">
 												<tr>
