@@ -261,53 +261,60 @@ function generarPlantillaHtml(name, apellido, parrafoIntroductorio) {
 										<td>
 											<!-- Header -->
                       <!-- Cabecera con Logotipo Oficial -->
-                          <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff;">
-                            <tr>
-                              <td align="center" style="padding: 30px 20px; background-color: #ffffff; border-bottom: 1px solid #f1f5f9;">
-                                <a href="https://klyntic.com" target="_blank" style="text-decoration: none; display: inline-block;">
-                                  <img src="https://consultorio.klyntic.com/assets/img/logoklyntic.png" width="130" height="auto" border="0" alt="Klyntic" style="display: block; font-family: sans-serif; font-size: 20px; color: #6366f1; font-weight: bold;" />
-                                </a>
-                              </td>
-                            </tr>
-                          </table>
+<table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff;">
+	<tr>
+		<td align="center" style="padding: 30px 20px; background-color: #ffffff; border-bottom: 1px solid #f1f5f9;">
+			<a href="https://klyntic.com" target="_blank" style="text-decoration: none; display: inline-block;">
+				<img src="https://consultorio.klyntic.com/assets/img/logoklyntic.png" width="130" height="auto" border="0" alt="Klyntic" style="display: block; font-family: sans-serif; font-size: 20px; color: #6366f1; font-weight: bold;" />
+			</a>
+		</td>
+	</tr>
+</table>
 
-                          <!-- Main Content -->
-                          <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                            <tr>
-                              <td style="padding: 40px 30px; background-color: #ffffff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
-                                <h1 style="color: #1e293b; font-size: 20px; font-weight: 700; margin-top: 0; margin-bottom: 20px;">Estimado(a) Dr(a). ${name},</h1>
-                                <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">Espero que se encuentre muy bien.</p>
-                                
-                                <!-- Inyección dinámica del párrafo comercial de calle (HCC, Razetti o Briceño Rossi) -->
-                                <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">${parrafoIntroductorio}</p>
-                                
-                                <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">Quiero presentarle formalmente <strong>Klyntic</strong>, un ecosistema especializado que integra un potente asistente de voz para automatizar la gestión administrativa de su consultorio:</p>
-                                
-                                <!-- Bullet Box Estructurado para Gmail -->
-                                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; border-radius: 8px; margin-bottom: 25px; border: 1px solid #f1f5f9;">
-                                  <tr>
-                                    <td style="padding: 20px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
-                                      <div style="font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 12px;">
-                                        • <strong>Comandos de Voz:</strong> Cree pacientes, agilice historias y estructure presupuestos dictándole al sistema en tiempo real.
-                                      </div>
-                                      <div style="font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 12px;">
-                                        • <strong>Gestión de Citas:</strong> Automatice la atención y el control de su agenda de forma fluida.
-                                      </div>
-                                      <div style="font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 0;">
-                                        • <strong>Módulo Dental por Voz:</strong> Registro de odontogramas completos mediante comandos de voz estructurados si maneja el área dental.
-                                      </div>
-                                    </td>
-                                  </tr>
-                                </table>
-                                
-                                <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">Le invito a visitar nuestra web renovada para ver las demostraciones en video. Por formar parte del directorio de la clínica, tiene disponible un <strong>periodo de prueba de 7 días sin costo alguno</strong> [0.1.7].</p>
-                                
-                                <div style="text-align: center; margin: 30px 0 10px 0;">
-                                  <a href="https://klyntic.com" target="_blank" class="btn-primary">Ver Demostraciones y Probar Gratis</a>
-                                </div>
-                              </td>
-                            </tr>
-                          </table>
+<!-- Main Content -->
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+	<tr>
+		<td style="padding: 40px 30px; background-color: #ffffff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+			<h1 style="color: #1e293b; font-size: 20px; font-weight: 700; margin-top: 0; margin-bottom: 20px;">Estimado(a) Dr(a). ${name},</h1>
+			<p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">Espero que se encuentre muy bien.</p>
+			
+			<!-- Párrafo de autoridad basado en el HCC y testimonios reales -->
+			<p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
+				Le escribo porque actualmente estamos expandiendo el uso de <strong>Klyntic</strong>, un ecosistema de Inteligencia Artificial que ya opera con éxito en consulta real y está siendo utilizado por especialistas en el <strong>Anexo del Hospital de Clínicas Caracas (HCC)</strong> para eliminar por completo la transcripción manual de las consultas.
+			</p>
+			
+			<p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
+				Diseñamos esta solución específicamente para automatizar la gestión administrativa y clínica de su consultorio mediante un potente asistente de voz, permitiéndole enfocarse al 100% en el paciente sin tocar el teclado:
+			</p>
+			
+			<!-- Bullet Box Estructurado para Gmail -->
+			<table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; border-radius: 8px; margin-bottom: 25px; border: 1px solid #f1f5f9;">
+				<tr>
+					<td style="padding: 20px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+						<div style="font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 12px;">
+							• <strong>Comandos de Voz:</strong> Cree pacientes, agilice historias y estructure presupuestos dictándole al sistema en tiempo real.
+						</div>
+						<div style="font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 12px;">
+							• <strong>Gestión de Citas por WhatsApp:</strong> Automatice la atención de la agenda y reduzca drásticamente las inasistencias de pacientes.
+						</div>
+						<div style="font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 0;">
+							• <strong>Módulo Dental/Estético por Voz:</strong> Registro de planes de tratamiento y odontogramas completos mediante comandos de voz estructurados.
+						</div>
+					</td>
+				</tr>
+			</table>
+			
+			<p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
+				Le invito a visitar nuestra web para conocer los testimonios de sus colegas y ver las demostraciones en video. Esta semana estamos habilitando únicamente <strong>5 accesos de cortesía en el sector con un periodo de prueba de 7 días sin costo alguno</strong>.
+			</p>
+			
+			<div style="text-align: center; margin: 30px 0 10px 0;">
+				<a href="https://klyntic.com" target="_blank" class="btn-primary">Ver Testimonios y Probar Gratis</a>
+			</div>
+		</td>
+	</tr>
+</table>
+
 
 											
 											<!-- Footer -->
