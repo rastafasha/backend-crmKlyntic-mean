@@ -323,6 +323,25 @@ function generarPlantillaHtml(name, apellido, parrafoIntroductorio) {
   `;
 }
 
+
+// Función temporal para registrar el remitente en la cuenta exacta que usa Render
+async function registrarRemitenteEnMailjet() {
+  const url = 'https://api.mailjet.com/v3/sender';
+  const auth = Buffer.from(`${process.env.SMTP_USER}:${process.env.SMTP_PASS}`).toString('base64');
+  
+  try {
+    const response = await axios.post(url, { Email: "malcolmc@klyntic.com" }, {
+      headers: { 'Authorization': `Basic ${auth}`, 'Content-Type': 'application/json' }
+    });
+    console.log("[MAILJET] Remitente registrado con éxito:", response.data);
+  } catch (error) {
+    console.error("[MAILJET ERROR] Al registrar remitente:", error.response ? error.response.data : error.message);
+  }
+}
+
+// Ejecutar la función automáticamente al iniciar el servidor
+registrarRemitenteEnMailjet();
+
 /**
  * Función auxiliar para enviar correos usando la API HTTP de Mailjet
  */
