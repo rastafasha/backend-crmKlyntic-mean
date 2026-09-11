@@ -47,7 +47,7 @@ const obtenerDoctoresCRM = async (req, res) => {
     }
 
     if (enviado !== undefined) {
-      query.correo_enviado = enviado === 'true';
+      query.correo_sendit = enviado === true;
     }
 
     // 🚀 EJECUCIÓN EN PARALELO (Promise.all):
@@ -87,7 +87,7 @@ const enviarCorreoIndividual = async (req, res) => {
       return res.status(404).json({ ok: false, msg: "Médico no encontrado en el CRM" });
     }
 
-    if (doctor.correo_enviado) {
+    if (doctor.correo_sendit) {
       return res.status(400).json({ ok: false, msg: "Este médico ya recibió el correo de invitación anteriormente" });
     }
 
@@ -114,7 +114,6 @@ const enviarCorreoIndividual = async (req, res) => {
 
     // Actualizamos el pipeline comercial real del Doctor
     doctor.correo_sendit = true;
-    doctor.correo_enviado = true; // Marcamos como enviado para que el filtro funcione
     doctor.estado_seguimiento = 'CORREO_ENVIADO';
     await doctor.save();
 
@@ -142,7 +141,7 @@ const enviarCampañaMasivaDoctores = async (req, res) => {
 
     // Definimos el criterio de búsqueda base e inteligente (evita correos vacíos)
     let query = {
-      correo_enviado: false,
+      correo_sendit: false,
       email: { $exists: true, $ne: "" }
     };
 
@@ -197,8 +196,7 @@ const enviarCampañaMasivaDoctores = async (req, res) => {
         await enviarCorreoViaAPI(targetEmail, doc.name || 'Doctor', subjectLine, htmlFinal);
 
         // Actualizamos los campos operativos del pipeline en caliente
-        doc.correo_sendit = true;
-        doc.correo_enviado = true; // Aseguramos marcarlo como enviado para que salga de la cola
+        doc.correo_sendit = true; // Aseguramos marcarlo como enviado para que salga de la cola
         doc.estado_seguimiento = 'CORREO_ENVIADO';
         await doc.save();
 
@@ -344,27 +342,7 @@ function generarPlantillaHtml(name, apellido, parrafoIntroductorio) {
 }
 
 
-// Función temporal para registrar el remitente en la cuenta exacta que usa Render
-async function registrarRemitenteEnMailjet() {
-  const url = 'https://api.mailjet.com/v3/sender';
-  const auth = Buffer.from(`${process.env.SMTP_USER}:${process.env.SMTP_PASS}`).toString('base64');
 
-  try {
-    const response = await axios.post(url, { Email: "malcolmc@klyntic.com" }, {
-      headers: { 'Authorization': `Basic ${auth}`, 'Content-Type': 'application/json' }
-    });
-    console.log("[MAILJET] Remitente registrado con éxito:", response.data);
-  } catch (error) {
-    if (error.response) {
-      // Pintamos el código de estado (Ej: 401, 403) que nunca miente
-      console.error("[MAILJET STATUS CODE]:", error.response.status);
-      console.error("[MAILJET DATA RAW]:", error.response.data);
-    } else {
-      console.error("[MAILJET ERROR]:", error.message);
-    }
-  }
-}
-registrarRemitenteEnMailjet();
 
 
 
