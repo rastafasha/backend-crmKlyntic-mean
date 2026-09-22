@@ -24,28 +24,61 @@ const bodyParser = require('body-parser');
 const app = express();
 const server = require('http').Server(app);
 
-// Initialize socket.io with the server
-const io = socketIO(server);
+// ==========================================
+// CONFIGURACIÓN DE CORS PARA SAAS MULTI-TENANT
+// ==========================================
+// Define aquí tus dominios fijos o paneles administrativos estáticos
+const allowedOrigins = [
+  "http://localhost:4200",
+  "http://localhost:4203",
+  "https://reservacita.vercel.app", //app reserva express
+];
 
-// Export io for use in other modules
-module.exports.io = io;
+const corsOptions = {
+  origin: (origin, callback) => {
+    // 1. Permitir peticiones sin origen (como Postman o peticiones entre tus servidores)
+    if (!origin) return callback(null, true);
 
-//cors
-app.use(cors());
+    // 2. FILTRO DINÁMICO MULTI-TENANT: 
+    // Acepta cualquier subdominio tuyo (*.klyntic.com) AND acepta cualquier subdominio de pruebas de Vercel (*.vercel.app)
+    // Esto repara instantáneamente el bloqueo mientras estás probando tus despliegues
+    const esSubdominioValido = /\.klyntic\.com\$/.test(origin) || 
+                               /\.vercel\.app\$/.test(origin) || 
+                               origin === "https://klyntic.com" || 
+                               origin === "http://klyntic.com";
+
+    if (esSubdominioValido || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log(`[CORS RECHAZADO]: Origen denegado -> ${origin}`);
+      callback(new Error('Origen no permitido por las políticas de CORS del SaaS'));
+    }
+  },
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+  credentials: true,
+  optionsSuccessStatus: 204
+};
+
+// Aplicar CORS a la REST API y configurar cabeceras adicionales si es necesario
+app.use(cors(corsOptions));
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Credentials', true);
-  res.header('Access-Control-Allow-Origin', '*'); // Temporarily allow all origins for testing
+  const origin = req.headers.origin;
+  if (origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Headers', 'Authorization, X-API-KEY, Origin, X-Requested-With, Content-Type, Accept, Access-Control-Allow-Request-Method');
   res.header('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.header('Allow', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   next();
 });
 
-const options = {
-  cors: {
-    origin: '*', // Temporarily allow all origins for testing
-  },
-};
+// Inicializamos el Socket.io con las opciones de CORS dinámicas ya configuradas
+const io = socketIO(server, {
+  cors: corsOptions
+});
+
+// 🔥 CORRECCIÓN CRÍTICA: Exportamos el 'io' justo AQUÍ, después de haber sido creado legítimamente
+module.exports.io = io;
 
 //lectura y parseo del body
 app.use(express.json());
@@ -59,24 +92,21 @@ const startServer = async () => {
   app.use(express.static('public'));
 
   //rutas
-
   app.use('/api/auth', require('./routes/auth'));
   app.use('/api/usuarios', require('./routes/usuarios'));
   app.use('/api/profile', require('./routes/profile'));
-
   app.use('/api/uploads', require('./routes/uploads'));
   app.use('/api/todo', require('./routes/busquedas'));
-
   app.use('/api/contactos', require('./routes/contacto'));
   app.use('/api/doctors', require('./routes/doctor'));
-  app.use('/api/clientes', require('./routes/cliente'));
   app.use('/api/paises', require('./routes/pais'));
   app.use('/api/specialities', require('./routes/speciality'));
   app.use('/api/payments', require('./routes/payment'));
   app.use('/api/recursos', require('./routes/recurso'));
   app.use('/api/prospectos', require('./routes/prospecto'));
-
-
+  
+  // Ruta para el flujo Express
+  app.use('/api/consultorios', require('./routes/consultorios'));
 
   //notification
   const vapidKeys = {
@@ -99,7 +129,7 @@ const startServer = async () => {
 
   //lo ultimo
   app.get('*', (req, res) => {
-    res.sendFile(path.resolve(__dirname, 'public')); //ruta para produccion, evita perder la ruta
+    res.sendFile(path.resolve(__dirname, 'public')); 
   });
 
   // Global error handling middleware
@@ -111,13 +141,6 @@ const startServer = async () => {
       error: err.message || err.toString()
     });
   });
-
-  // Solo iniciar servidor local si no estamos en Vercel
-  // if (process.env.VERCEL !== '1') {
-  //     server.listen(process.env.PORT, () => {
-  //         console.log('Servidor en puerto: ' + process.env.PORT);
-  //     });
-  // }
 };
 
 // Start the server
@@ -129,9 +152,6 @@ startServer().catch(err => {
 // For traditional server (including Render.com)
 const PORT = process.env.PORT || 5000;
 
-// Only start the HTTP server if not in serverless mode (Vercel)
-// On Render, we need to start the server normally (not serverless)
-// On Vercel, we export the handler for serverless
 if (process.env.VERCEL !== '1') {
   server.listen(PORT, () => {
     console.log(`✅ Servidor ejecutándose en puerto: ${PORT}`);
@@ -146,4 +166,3 @@ if (typeof serverless !== 'undefined' && serverless) {
 
 // Export app for testing and other uses
 module.exports = { app, server, io };
-

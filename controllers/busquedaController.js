@@ -3,7 +3,7 @@ const Usuario = require('../models/usuario');
 const Doctor = require('../models/doctor');
 const Speciality = require('../models/speciality');
 const Pais = require('../models/pais');
-const Cliente = require('../models/cliente');
+const Consultorio = require('../models/consultorio');
 const Recurso = require('../models/recurso');
 
 const getTodo = async(req, res = response) => {
@@ -36,11 +36,11 @@ const getTodo = async(req, res = response) => {
         doctorsFilter.estado_seguimiento = estadoFilter;
     }
 
-    const [usuarios, doctors, speciality, clientes, recursos] = await Promise.all([
+    const [usuarios, doctors, speciality, consultorios, recursos] = await Promise.all([
         Usuario.find({ username: regex }),
         Doctor.find(doctorsFilter).populate('speciality', 'nombre'),
         Speciality.find({ nombre: regex }),
-        Cliente.find({ nombre: regex }),
+        Consultorio.find({ nombre: regex }),
         Recurso.find({ titulo: regex }),
     ]);
     const searchPaises = Pais.find({ pais: regex });
@@ -50,7 +50,7 @@ const getTodo = async(req, res = response) => {
         usuarios,
         doctors,
         speciality,
-        clientes,
+        consultorios,
         recursos,
         paises: await searchPaises
     });
@@ -109,13 +109,13 @@ const getDocumentosColeccion = async(req, res = response) => {
         case 'pais':
             data = await Pais.find({ pais: regex });
             break;
-        case 'clientes':
-            data = await Cliente.find({ cliente: regex });
+        case 'consultorios':
+            data = await Consultorio.find({ cliente: regex });
             break;
         default:
             return res.status(400).json({
                 ok: false,
-                msg: 'la tabla debe ser usuarios/specialities/doctors/pais/clientes'
+                msg: 'la tabla debe ser usuarios/specialities/doctors/pais/consultorios'
             });
     }
 

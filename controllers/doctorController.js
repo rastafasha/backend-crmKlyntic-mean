@@ -1,6 +1,8 @@
 const { response } = require('express');
 const Doctor = require('../models/doctor');
 const Speciality = require('../models/speciality');
+const Consultorio = require('../models/consultorio'); // Importamos el nuevo modelo de SaaS [12]
+
 
 const getDoctors = async (req, res) => {
     try {
@@ -80,26 +82,74 @@ const createDoctor = async (req, res) => {
         }
 };
 
-
 const updateDoctor = async (req, res) => {
     const id = req.params.id;
-    const uid = req.uid;
+    const uid = req.uid; // ID del operador/admin del CRM [10]
 
     try {
-        const doctor = await Doctor.findById(id);
-        if (!doctor) {
-            return res.status(404).json({ // Cambiado a 404 (Not Found)
+        const doctorDB = await Doctor.findById(id);
+        if (!doctorDB) {
+            return res.status(404).json({
                 ok: false,
-                msg: 'doctor no encontrado por el id'
+                msg: 'Médico prospecto no encontrado por el id.'
             });
         }
 
+        const dataModificada = req.body;
         const cambiosDoctor = {
-            ...req.body,
+            ...dataModificada,
             usuario: uid
-        }
+        };
 
+        // 1. Guardar la actualización del prospecto en la colección 'doctors' [10]
         const doctorActualizado = await Doctor.findByIdAndUpdate(id, cambiosDoctor, { new: true });
+
+        // 🔥 DETECTOR DE CONVERSIÓN EXPRESS:
+        // Si el estado de seguimiento pasa a APROBADO y ese doctor AÚN no tiene un consultorio SaaS creado...
+        if (dataModificada.estado_seguimiento === 'APROBADO') {
+            const existeConsultorio = await Consultorio.findOne({ user_id: doctorActualizado._id });
+
+            if (!existeConsultorio) {
+                console.log(`🚀 ¡Conversión detectada! Creando Consultorio Express para la Dra/Dr: ${doctorActualizado.name}`);
+
+                // Generación limpia del slug usando el nombre y apellido del prospecto
+                const nombreCompleto = `${doctorActualizado.nombre || ''} ${doctorActualizado.apellido || ''}`.trim();
+                const nombreSlugBase = nombreCompleto || 'consultorio-medico';
+                
+                let slug = nombreSlugBase.toLowerCase().trim()
+                    .replace(/[\s]+/g, '-')
+                    .replace(/[^\w\-]+/g, '')
+                    .replace(/\-\-+/g, '-')
+                    .replace(/á/g, 'a').replace(/é/g, 'e').replace(/í/g, 'i').replace(/ó/g, 'o').replace(/ú/g, 'u')
+                    .replace(/ñ/g, 'n').replace(/ü/g, 'u');
+
+                // Asegurar que el subdominio no colisione con otro existente en MongoDB
+                const existeSlug = await Consultorio.findOne({ slug });
+                if (existeSlug) {
+                    slug = `${slug}-${Math.floor(1000 + Math.random() * 9000)}`; // Le añade un sufijo numérico aleatorio
+                }
+
+                // Creamos el Consultorio SaaS en caliente heredando los datos recabados en calle por el consultor
+                const nuevoConsultorio = new Consultorio({
+                    name: `${doctorActualizado.name}`,
+                    slug: slug,
+                    moneda: 'USD', // Moneda por defecto
+                    acepta_usd_internacional: false,
+                    acepta_moneda_local: true,
+                    statusapp: doctorActualizado.statusapp || 'PENDIENTE',
+                    ciudad: doctorActualizado.ciudad || 'Caracas',
+                    address: doctorActualizado.address || 'Dirección en proceso', // Mapea HCC, Razetti, etc [15]
+                    ubicacion: doctorActualizado.ubicacion || 'Dirección en proceso', // Mapea HCC, Razetti, etc [15]
+                    phone: doctorActualizado.phone || '584120000000',
+                    status: 'Activo', // Se inicializa activo para producción inmediata en Vercel [12]
+                    user_id: doctorActualizado._id, // Relación directa con el ID único del prospecto [14]
+                    planSuscripcion: 'GRATIS' [14]
+                });
+
+                await nuevoConsultorio.save();
+                console.log(`✅ Consultorio SaaS creado con éxito. URL: https://${slug}.klyntic.com`);
+            }
+        }
 
         res.json({
             ok: true,
@@ -107,10 +157,10 @@ const updateDoctor = async (req, res) => {
         });
 
     } catch (error) {
-        console.log(error); // Es buena práctica imprimir el error en consola para debugging
+        console.error('Error crítico al actualizar el doctor/crear consultorio:', error);
         res.status(500).json({
             ok: false,
-            msg: 'Error hable con el admin'
+            msg: 'Error interno, por favor hable con el administrador.'
         });
     }
 };
