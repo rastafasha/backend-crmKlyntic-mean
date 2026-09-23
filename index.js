@@ -4,7 +4,6 @@ const express = require('express');
 const { dbConnection } = require('./database/config');
 const cors = require('cors');
 const path = require('path');
-const socketIO = require('socket.io');
 
 // Check if we're running on a serverless platform
 const isServerless = process.env.RENDER === '1' || process.env.VERCEL === '1';
@@ -28,57 +27,48 @@ const server = require('http').Server(app);
 // CONFIGURACIÓN DE CORS PARA SAAS MULTI-TENANT
 // ==========================================
 // Define aquí tus dominios fijos o paneles administrativos estáticos
+
 const allowedOrigins = [
   "http://localhost:4200",
+  "https://localhost:4200",
   "http://localhost:4203",
-  "https://reservacita.vercel.app", //app reserva express
+  "https://localhost:4203",
+  "https://vercel.app",
+  "https://reservacita.vercel.app"
 ];
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // 1. Permitir peticiones sin origen (como Postman o peticiones entre tus servidores)
+    // 1. Permitir peticiones sin origen (como Postman o llamadas internas del servidor)
     if (!origin) return callback(null, true);
 
-    // 2. FILTRO DINÁMICO MULTI-TENANT: 
-    // Acepta cualquier subdominio tuyo (*.klyntic.com) AND acepta cualquier subdominio de pruebas de Vercel (*.vercel.app)
-    // Esto repara instantáneamente el bloqueo mientras estás probando tus despliegues
-    const esSubdominioValido = /\.klyntic\.com\$/.test(origin) || 
-                               /\.vercel\.app\$/.test(origin) || 
-                               origin === "https://klyntic.com" || 
-                               origin === "http://klyntic.com";
+    // Limpiamos la cadena quitando espacios o barras accidentales al final
+    const originLimpio = origin.trim().toLowerCase();
+
+    // 2. 🔥 FILTRO DINÁMICO INFALIBLE (Cero errores de escape de expresiones regulares)
+    // Usamos 'endsWith' nativo de JavaScript para validar que la URL termine en tu dominio o en Vercel
+    const esSubdominioValido = originLimpio.endsWith('.klyntic.com') || 
+                               originLimpio.endsWith('.vercel.app') || 
+                               originLimpio === "https://klyntic.com" || 
+                               originLimpio === "http://klyntic.com";
 
     if (esSubdominioValido || allowedOrigins.includes(origin)) {
+      // Autorizamos el acceso de inmediato
       callback(null, true);
     } else {
-      console.log(`[CORS RECHAZADO]: Origen denegado -> ${origin}`);
+      console.log(`❌ [CORS RECHAZADO]: Origen bloqueado de forma explícita -> ${origin}`);
       callback(new Error('Origen no permitido por las políticas de CORS del SaaS'));
     }
   },
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
-  credentials: true,
+  credentials: true, // Obligatorio para permitir el flujo de pre-registro anónimo
   optionsSuccessStatus: 204
 };
 
-// Aplicar CORS a la REST API y configurar cabeceras adicionales si es necesario
+// Aplicamos la directiva única del middleware oficial
 app.use(cors(corsOptions));
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (origin) {
-    res.header('Access-Control-Allow-Origin', origin);
-  }
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Headers', 'Authorization, X-API-KEY, Origin, X-Requested-With, Content-Type, Accept, Access-Control-Allow-Request-Method');
-  res.header('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  next();
-});
 
-// Inicializamos el Socket.io con las opciones de CORS dinámicas ya configuradas
-const io = socketIO(server, {
-  cors: corsOptions
-});
 
-// 🔥 CORRECCIÓN CRÍTICA: Exportamos el 'io' justo AQUÍ, después de haber sido creado legítimamente
-module.exports.io = io;
 
 //lectura y parseo del body
 app.use(express.json());
@@ -165,4 +155,4 @@ if (typeof serverless !== 'undefined' && serverless) {
 }
 
 // Export app for testing and other uses
-module.exports = { app, server, io };
+module.exports = { app, server };
