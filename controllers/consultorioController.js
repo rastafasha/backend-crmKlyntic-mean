@@ -169,7 +169,7 @@ const findBySlug = async (req, res) => {
         // =====================================================================
         // 📡 SI PASA EL FILTRO, SOLICITA LA AGENDA REAL A LARAVEL CORE (SUPABASE)
         // =====================================================================
-        console.log(`📡 [CRM Puente] Solicitando agenda real a Laravel para el Médico ID legítimo: ${laravelDoctorId}`);
+        // console.log(`📡 [CRM Puente] Solicitando agenda real a Laravel para el Médico ID legítimo: ${laravelDoctorId}`);
         
         let agendaRealLaravel = [];
         try {

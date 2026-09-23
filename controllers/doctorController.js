@@ -84,7 +84,7 @@ const createDoctor = async (req, res) => {
 
 const updateDoctor = async (req, res) => {
     const id = req.params.id;
-    const uid = req.uid; // ID del operador/admin del CRM [10]
+    const uid = req.uid; // ID del operador/admin del CRM
 
     try {
         const doctorDB = await Doctor.findById(id);
@@ -101,54 +101,72 @@ const updateDoctor = async (req, res) => {
             usuario: uid
         };
 
-        // 1. Guardar la actualización del prospecto en la colección 'doctors' [10]
+        // 1. Guardar la actualización del prospecto en la colección 'doctors'
         const doctorActualizado = await Doctor.findByIdAndUpdate(id, cambiosDoctor, { new: true });
 
         // 🔥 DETECTOR DE CONVERSIÓN EXPRESS:
-        // Si el estado de seguimiento pasa a APROBADO y ese doctor AÚN no tiene un consultorio SaaS creado...
         if (dataModificada.estado_seguimiento === 'APROBADO') {
+            
+            // 1. Buscamos de forma estricta si ya existe un consultorio asociado a este doctor
             const existeConsultorio = await Consultorio.findOne({ user_id: doctorActualizado._id });
+            
+            let slug;
+            let queryBusqueda = {};
 
-            if (!existeConsultorio) {
+            if (existeConsultorio) {
+                console.log(`♻️ ¡Actualización detectada! Modificando Consultorio existente ID: ${existeConsultorio._id}`);
+                // Si existe, nos aseguramos de buscar exactamente por el ID numérico interno de MongoDB para evitar clones
+                queryBusqueda = { _id: existeConsultorio._id };
+                slug = existeConsultorio.slug; // Mantenemos su URL original intacta
+            } else {
                 console.log(`🚀 ¡Conversión detectada! Creando Consultorio Express para la Dra/Dr: ${doctorActualizado.name}`);
+                // Si no existe, la búsqueda del upsert se basará en el user_id para crearlo por primera vez
+                queryBusqueda = { user_id: doctorActualizado._id };
 
-                // Generación limpia del slug usando el nombre y apellido del prospecto
+                // Generación única del slug
                 const nombreCompleto = `${doctorActualizado.nombre || ''} ${doctorActualizado.apellido || ''}`.trim();
                 const nombreSlugBase = nombreCompleto || 'consultorio-medico';
                 
-                let slug = nombreSlugBase.toLowerCase().trim()
+                slug = nombreSlugBase.toLowerCase().trim()
                     .replace(/[\s]+/g, '-')
                     .replace(/[^\w\-]+/g, '')
                     .replace(/\-\-+/g, '-')
                     .replace(/á/g, 'a').replace(/é/g, 'e').replace(/í/g, 'i').replace(/ó/g, 'o').replace(/ú/g, 'u')
                     .replace(/ñ/g, 'n').replace(/ü/g, 'u');
 
-                // Asegurar que el subdominio no colisione con otro existente en MongoDB
+                // Validamos que no se repita con el de OTRA persona
                 const existeSlug = await Consultorio.findOne({ slug });
                 if (existeSlug) {
-                    slug = `${slug}-${Math.floor(1000 + Math.random() * 9000)}`; // Le añade un sufijo numérico aleatorio
+                    slug = `${slug}-${Math.floor(1000 + Math.random() * 9000)}`;
                 }
-
-                // Creamos el Consultorio SaaS en caliente heredando los datos recabados en calle por el consultor
-                const nuevoConsultorio = new Consultorio({
-                    name: `${doctorActualizado.name}`,
-                    slug: slug,
-                    moneda: 'USD', // Moneda por defecto
-                    acepta_usd_internacional: false,
-                    acepta_moneda_local: true,
-                    statusapp: doctorActualizado.statusapp || 'PENDIENTE',
-                    ciudad: doctorActualizado.ciudad || 'Caracas',
-                    address: doctorActualizado.address || 'Dirección en proceso', // Mapea HCC, Razetti, etc [15]
-                    ubicacion: doctorActualizado.ubicacion || 'Dirección en proceso', // Mapea HCC, Razetti, etc [15]
-                    phone: doctorActualizado.phone || '584120000000',
-                    status: 'Activo', // Se inicializa activo para producción inmediata en Vercel [12]
-                    user_id: doctorActualizado._id, // Relación directa con el ID único del prospecto [14]
-                    planSuscripcion: 'GRATIS' [14]
-                });
-
-                await nuevoConsultorio.save();
-                console.log(`✅ Consultorio SaaS creado con éxito. URL: https://${slug}.klyntic.com`);
             }
+
+            // 2. Definimos los campos que se van a guardar/actualizar
+            const camposConsultorio = {
+                name: `${doctorActualizado.name}`,
+                slug: slug,
+                moneda: 'USD',
+                acepta_usd_internacional: false,
+                acepta_moneda_local: true,
+                statusapp: doctorActualizado.statusapp || 'PENDIENTE',
+                ciudad: doctorActualizado.ciudad || 'Caracas',
+                address: doctorActualizado.address || 'Dirección en proceso',
+                ubicacion: doctorActualizado.ubicacion || 'Dirección en proceso',
+                phone: doctorActualizado.phone || '584120000000',
+                status: 'Activo',
+                user_id: doctorActualizado._id,
+                planSuscripcion: 'GRATIS'
+            };
+
+            // 3. OPERACIÓN UPSERT REFORZADA: 
+            // Si encontró por queryBusqueda (id del consultorio), reemplaza los datos. Si no, crea usando el user_id.
+            const consultorioFinal = await Consultorio.findOneAndUpdate(
+                queryBusqueda,
+                { $set: camposConsultorio },
+                { new: true, upsert: true }
+            );
+
+            console.log(`✅ Consultorio SaaS procesado con éxito. URL: https://${consultorioFinal.slug}.klyntic.com`);
         }
 
         res.json({
@@ -164,6 +182,7 @@ const updateDoctor = async (req, res) => {
         });
     }
 };
+
 
 const deleteDoctor = async (req, res) => {
     try {
