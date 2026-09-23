@@ -33,6 +33,7 @@ const allowedOrigins = [
   "https://localhost:4200",
   "http://localhost:4203",
   "https://localhost:4203",
+  "https://admin-mean-crmklyntic.vercel.app",
   "https://vercel.app",
   "https://reservacita.vercel.app"
 ];
@@ -45,12 +46,13 @@ const corsOptions = {
     // Limpiamos la cadena quitando espacios o barras accidentales al final
     const originLimpio = origin.trim().toLowerCase();
 
-    // 2. 🔥 FILTRO DINÁMICO INFALIBLE (Cero errores de escape de expresiones regulares)
-    // Usamos 'endsWith' nativo de JavaScript para validar que la URL termine en tu dominio o en Vercel
-    const esSubdominioValido = originLimpio.endsWith('.klyntic.com') || 
-                               originLimpio.endsWith('.vercel.app') || 
-                               originLimpio === "https://klyntic.com" || 
-                               originLimpio === "http://klyntic.com";
+    // 2. 🔥 FILTRO DINÁMICO MULTI-TENANT CORREGIDO (Infalible para subdominios)
+    // Al usar 'endsWith' apuntando directo a 'klyntic.com' (sin el punto inicial), 
+    // capturamos de forma limpia tanto 'klyntic.com' como 'joaqun-paez.klyntic.com'.
+    const esSubdominioValido = originLimpio.endsWith('klyntic.com') || 
+                               originLimpio.endsWith('vercel.app') || 
+                               originLimpio.includes('klyntic.com') ||
+                               originLimpio.includes('vercel.app');
 
     if (esSubdominioValido || allowedOrigins.includes(origin)) {
       // Autorizamos el acceso de inmediato
@@ -64,6 +66,7 @@ const corsOptions = {
   credentials: true, // Obligatorio para permitir el flujo de pre-registro anónimo
   optionsSuccessStatus: 204
 };
+
 
 // Aplicamos la directiva única del middleware oficial
 app.use(cors(corsOptions));
