@@ -20,6 +20,28 @@ const getRecursos = async (req, res) => {
     }
 };
 
+const getRecursosActivos = async (req, res) => {
+    try {
+        // 🚀 FILTRO ACTIVO: Buscamos únicamente los documentos donde 'activo' sea true
+        // 📈 ORDENAMIENTO NATIVO: Traemos los recursos ordenados desde el más reciente al más antiguo
+        const recursos = await Recurso.find({ activo: true })
+            .sort({ createdAt: -1 });
+
+        res.json({
+            ok: true,
+            recursos
+        });
+        
+    } catch (error) {
+        console.error('❌ Error al obtener recursos activos:', error);
+        return res.status(500).json({ 
+            ok: false,
+            message: 'Error al obtener los recursos activos de la plataforma' 
+        });
+    }
+};
+
+
 
 const getRecurso = async (req, res) => {
 
@@ -177,6 +199,7 @@ const listarPorCategoria = async (req, res) => {
 module.exports = {
     getRecursos,
     listarPorCategoria,
+    getRecursosActivos,
     getRecurso,
     borrarRecurso,
     createRecurso,

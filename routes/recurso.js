@@ -7,6 +7,7 @@ const router = Router();
 const {
     getRecursos,
     listarPorCategoria,
+    getRecursosActivos,
     getRecurso,
     borrarRecurso,
     createRecurso,
@@ -18,6 +19,7 @@ const { validarJWT } = require('../middlewares/validar-jwt');
 
 router.get('/',  getRecursos);
 router.get('/category/:nombre', listarPorCategoria);
+router.get('/activos', getRecursosActivos);
 
 router.get('/:id',  
     validarJWT,

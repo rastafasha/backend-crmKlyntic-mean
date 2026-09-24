@@ -35,7 +35,8 @@ const recursoSchema = new mongoose.Schema({
   },
   activo: { 
     type: Boolean, 
-    default: true 
+    default: false,
+    required: false 
   },
   fechaCreacion: { 
     type: Date, 
