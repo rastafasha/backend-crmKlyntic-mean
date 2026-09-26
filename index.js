@@ -33,9 +33,13 @@ const allowedOrigins = [
   "https://localhost:4200",
   "http://localhost:4203",
   "https://localhost:4203",
+  "http://localhost:4300",
   "https://admin-mean-crmklyntic.vercel.app",
   "https://vercel.app",
-  "https://reservacita.vercel.app"
+  "https://reservacita.vercel.app",
+  "https://consultorio.klyntic.com",
+  "https://clinica.klyntic.com",
+  "https://pconsultorio.klyntic.com",
 ];
 
 const corsOptions = {
@@ -100,6 +104,7 @@ const startServer = async () => {
   
   // Ruta para el flujo Express
   app.use('/api/consultorios', require('./routes/consultorios'));
+  app.use('/api/clinicas', require('./routes/clinicas'));//enterprise
 
   //notification
   const vapidKeys = {

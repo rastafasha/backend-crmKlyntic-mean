@@ -20,7 +20,12 @@ const ConsultorioSchema = Schema({
         required: false,
         default: Date.now,
     },
-    tipoClinica: { type: String, required: false },
+    tipoClinica: { 
+    type: String, 
+    required: true, 
+    default: 'Consultorio', 
+    enum: ['Consultorio', 'Clinica'] // 👈 Define las dos vertientes SaaS de Klyntic
+},
 
     // 🌍 CONTROL DE MONEDA PARA CITAS (Ej: 'USD', 'VES', 'COP', etc.)
     moneda: { type: String, required: true, default: 'USD' },
