@@ -33,6 +33,7 @@ const allowedOrigins = [
   "https://localhost:4200",
   "http://localhost:4203",
   "https://localhost:4203",
+  "http://localhost:4206",
   "http://localhost:4300",
   "http://localhost:3001",
   "http://localhost:3002",
@@ -43,6 +44,7 @@ const allowedOrigins = [
   "https://consultorio.klyntic.com",
   "https://clinica.klyntic.com",
   "https://pconsultorio.klyntic.com",
+  "https://paciente.klyntic.com",
 ];
 
 const corsOptions = {
