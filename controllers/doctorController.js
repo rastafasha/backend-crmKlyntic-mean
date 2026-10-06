@@ -62,41 +62,41 @@ const createDoctor = async (req, res) => {
     try {
         let data = req.body;
 
-        // 🟢 1. RECEPTOR INTELIGENTE DE ESPECIALIDAD STRING
-        // Si el formulario envía un texto en el campo 'speciality', lo procesamos:
+        // 1. RECEPTOR INTELIGENTE DE ESPECIALIDAD (Tu lógica de string a ObjectId)
         if (data.speciality && typeof data.speciality === 'string' && data.speciality.trim() !== '') {
             const nombreEspecialidad = data.speciality.trim();
-
-            // Buscamos si ya existe una especialidad con ese mismo nombre (sin importar mayúsculas/minúsculas)
             let specialityDB = await Speciality.findOne({ 
                 nombre: { $regex: new RegExp(`^${nombreEspecialidad}$`, 'i') } 
             });
 
-            // Si no existe, la creamos de una vez de forma automática
             if (!specialityDB) {
                 console.log(`✨ Creando nueva especialidad automática desde Landing: ${nombreEspecialidad}`);
-                specialityDB = new Speciality({
-                    nombre: nombreEspecialidad
-                    // Nota: No inyectamos 'usuario' aquí para que no requiera token obligatorio
-                });
+                specialityDB = new Speciality({ nombre: nombreEspecialidad });
                 await specialityDB.save();
             }
-
-            // Reemplazamos el string del body por el ID real de MongoDB de la especialidad encontrada o creada
             data.speciality = specialityDB._id;
         } else if (data.speciality === '') {
-            // Si viene vacío, lo removemos para que no intente guardar un string vacío como ID
             delete data.speciality;
         }
 
-        // 🟢 2. CONFIGURACIÓN COMPATIBLE CON RUTA PÚBLICA (LANDING)
-        // Como la petición viene en frío desde la web pública, 'req.uid' será null/undefined.
-        // Inyectamos el usuario operador del CRM solo si existe una sesión activa; de lo contrario, pasa libre.
+        // 🟢 2. CORRECCIÓN CLAVE DE MAPEADO:
+        // Extraemos 'ciudad' y 'ubicacion' de forma segura desde el objeto de entrada (data)
+        const ciudadFormulario = data.ciudad || 'Caracas';
+        let ubicacionFinal = data.ubicacion;
+
+        // Si el usuario seleccionó "Consultorio", el campo 'ubicacion' llegará vacío desde Angular.
+        // En ese caso, le asignamos el nombre de la ciudad por defecto para evitar registros vacíos en el CRM.
+        if (data.tipoClinica === 'Consultorio' || !ubicacionFinal || ubicacionFinal.trim() === '') {
+            ubicacionFinal = ciudadFormulario;
+        }
+
         const uid = req.uid || null;
 
+        // 🟢 3. CONSTRUCCIÓN SEGURA DEL MODELO
         const doctor = new Doctor({
             usuario: uid,
-            ...data
+            ...data, // Mantiene todos los campos nativos del formulario (incluyendo data.ciudad)
+            ubicacion: ubicacionFinal // Sobreescribimos la ubicación de forma inteligente
         });
 
         const doctorDB = await doctor.save();
@@ -114,6 +114,8 @@ const createDoctor = async (req, res) => {
         });
     }
 };
+
+
 
 const updateDoctor = async (req, res) => {
     const id = req.params.id;
