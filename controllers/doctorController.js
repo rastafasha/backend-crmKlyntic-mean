@@ -57,29 +57,62 @@ const getDoctorsByUser = async (req, res) => {
     }
 };
 
+
 const createDoctor = async (req, res) => {
-     const uid = req.uid;
+    try {
+        let data = req.body;
+
+        // 🟢 1. RECEPTOR INTELIGENTE DE ESPECIALIDAD STRING
+        // Si el formulario envía un texto en el campo 'speciality', lo procesamos:
+        if (data.speciality && typeof data.speciality === 'string' && data.speciality.trim() !== '') {
+            const nombreEspecialidad = data.speciality.trim();
+
+            // Buscamos si ya existe una especialidad con ese mismo nombre (sin importar mayúsculas/minúsculas)
+            let specialityDB = await Speciality.findOne({ 
+                nombre: { $regex: new RegExp(`^${nombreEspecialidad}$`, 'i') } 
+            });
+
+            // Si no existe, la creamos de una vez de forma automática
+            if (!specialityDB) {
+                console.log(`✨ Creando nueva especialidad automática desde Landing: ${nombreEspecialidad}`);
+                specialityDB = new Speciality({
+                    nombre: nombreEspecialidad
+                    // Nota: No inyectamos 'usuario' aquí para que no requiera token obligatorio
+                });
+                await specialityDB.save();
+            }
+
+            // Reemplazamos el string del body por el ID real de MongoDB de la especialidad encontrada o creada
+            data.speciality = specialityDB._id;
+        } else if (data.speciality === '') {
+            // Si viene vacío, lo removemos para que no intente guardar un string vacío como ID
+            delete data.speciality;
+        }
+
+        // 🟢 2. CONFIGURACIÓN COMPATIBLE CON RUTA PÚBLICA (LANDING)
+        // Como la petición viene en frío desde la web pública, 'req.uid' será null/undefined.
+        // Inyectamos el usuario operador del CRM solo si existe una sesión activa; de lo contrario, pasa libre.
+        const uid = req.uid || null;
+
         const doctor = new Doctor({
             usuario: uid,
-            ...req.body
+            ...data
         });
-    
-        try {
-    
-            const doctorDB = await doctor.save();
-    
-            res.json({
-                ok: true,
-                doctor: doctorDB
-            });
-    
-        } catch (error) {
-            console.log(error);
-            res.status(500).json({
-                ok: false,
-                msg: 'Hable con el admin'
-            });
-        }
+
+        const doctorDB = await doctor.save();
+
+        res.json({
+            ok: true,
+            doctor: doctorDB
+        });
+
+    } catch (error) {
+        console.error('❌ Error crítico en el registro del doctor desde Landing:', error);
+        res.status(500).json({
+            ok: false,
+            msg: 'Error interno en el servidor, por favor hable con el admin.'
+        });
+    }
 };
 
 const updateDoctor = async (req, res) => {

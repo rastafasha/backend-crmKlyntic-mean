@@ -33,7 +33,6 @@ router.get('/:id',
      getDoctor);
 
 router.post('/store',  
-    validarJWT, 
      createDoctor 
     );
 router.delete('/delete/:id',  validarJWT, deleteDoctor);
