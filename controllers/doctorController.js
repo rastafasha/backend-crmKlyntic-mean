@@ -293,19 +293,19 @@ const updateDoctor = async (req, res) => {
                     // 🔍 BUSQUEDA MAESTRA: Intentamos buscar tu consultorio administrador en la DB
                     // Cambia 'klyntic' por el slug real que use tu cuenta administradora corporativa
                     let consultorioAdmin = await Consultorio.findOne({ slug: 'klyntic' });
-                    
+
                     // Si no existe un consultorio admin creado, generamos un ObjectId de respaldo válido
                     // para que el microservicio receptor no rebote la petición por formato inválido.
-                    const adminId = consultorioAdmin 
-                        ? String(consultorioAdmin._id) 
+                    const adminId = consultorioAdmin
+                        ? String(consultorioAdmin._id)
                         : "6a48458d6b613b73e4c34d02"; // 24 caracteres hexadecimales (Format ObjectId)
 
                     await axios.post('https://back-klyntic-envios.onrender.com/api/klyntic/notificaciones/webhook-recordatorio', {
                         consultorio_id: adminId,                               // 🟢 ID Corporativo Maestro asignado
-                        telefono: doctorActualizado.phone,                     
-                        mensaje: mensajeBot,                                   
-                        usuario: String(doctorActualizado._id).trim(),         
-                        rolDestinatario: 'DOCTOR',                                         
+                        telefono: doctorActualizado.phone,
+                        mensaje: mensajeBot,
+                        usuario: String(doctorActualizado._id).trim(),
+                        rolDestinatario: 'DOCTOR',
                         titulo: '¡Tu acceso a Klyntic está listo! 🏥',
                         tipo: 'AVISO_GENERAL'
                     });
@@ -313,10 +313,11 @@ const updateDoctor = async (req, res) => {
                     console.log(`📲 Alerta de accesos encolada en el Webhook de WhatsApp con éxito.`);
                 } catch (wsError) {
                     console.error('⚠️ El microservicio de envíos no respondió o está dormido:', wsError.message);
-                    
-                    // Fallback manual instantáneo si la API falla o da timeout
+
                     const numeroLimpio = doctorActualizado.phone.replace(/[^\d]/g, '');
-                    whatsapp_link = `https://whatsapp.com{numeroLimpio}&text=${encodeURIComponent(mensajeBot)}`;
+
+                    // 🟢 UNIFICADO: Estructura nativa wa.me indestructible que Angular procesa sin quejas
+                    whatsapp_link = `https://wa.me/${numeroLimpio}?text=${encodeURIComponent(mensajeBot)}`;
                 }
             }
 

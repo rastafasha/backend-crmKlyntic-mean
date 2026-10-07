@@ -122,35 +122,53 @@ const videoUpload = async (req, res = response) => {
 
         console.log(`⏳ Subiendo video a Cloudinary en la carpeta /recursos... Peso: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
 
-        // 🚀 CLAVE: Usamos upload_large para soportar streams pesados de video sin cortes de buffer
+        
+        // 🚀 CLAVE: Subida limpia y directa del archivo de video
         const result = await cloudinary.uploader.upload_large(dataURI, {
             folder: `crmklyntic/videos/${tipo}/`,
             public_id: uuidv4(),
-            resource_type: "video", // 👈 OBLIGATORIO: Le indica a Cloudinary que procese codecs de video
-            chunk_size: 6000000     // Envía fragmentos de 6MB en memoria para máxima velocidad
+            resource_type: "video", 
+            chunk_size: 6000000,
+            // 🔥 Parámetros para que Cloudinary recomprima el archivo a codecs nativos de streaming
+            transformation: [
+                { quality: "auto" },
+                { fetch_format: "mp4" } // Fuerza el contenedor optimizado compatible con HTML5
+            ]
         });
 
-        const urlVideo = result.secure_url;
-        const campoDestino = req.query.campo || 'urlMedia'; // 'urlMedia' por defecto para tus recursos
+        // Guardamos la URL segura directa generada
+        const urlVideoFinal = result.secure_url; 
+
         const updateQuery = { 
-            urlMedia: result.secure_url,
-            cloudinary_id: result.public_id, // 👈 Se guarda el ID de borrado
-            bytes: result.bytes               // 👈 Se guarda el peso real devuelto por Cloudinary
+            urlMedia: urlVideoFinal,          
+            cloudinary_id: result.public_id, 
+            bytes: result.bytes               
         };
 
-        // 🔄 Actualización dinámica de base de datos según el tipo elegido
+        // =========================================================================
+        // 🗑️ LIMPIEZA AUTOMÁTICA: Borrar video anterior de Cloudinary si existe
+        // =========================================================================
         if (tipo === 'recursos') {
-            const Recurso = require('../models/recurso'); // Asegúrate de tener este modelo creado
-            await Recurso.findByIdAndUpdate(id, updateQuery, { new: true, runValidators: false });
+            const Recurso = require('../models/recurso');
+            const recursoViejo = await Recurso.findById(id);
+            // Si el recurso ya tenía un video en Cloudinary, lo destruimos antes de subir el nuevo
+            if (recursoViejo && recursoViejo.cloudinary_id) {
+                console.log(`🗑️ Eliminando video obsoleto de Cloudinary: ${recursoViejo.cloudinary_id}`);
+                await cloudinary.uploader.destroy(recursoViejo.cloudinary_id, { resource_type: 'video' });
+            }
         } else if (tipo === 'consultorios') {
             const Consultorio = require('../models/consultorio');
-            await Consultorio.findByIdAndUpdate(id, updateQuery, { new: true, runValidators: false });
+            const consultorioViejo = await Consultorio.findById(id);
+            if (consultorioViejo && consultorioViejo.cloudinary_id) {
+                console.log(`🗑️ Eliminando video obsoleto de Cloudinary: ${consultorioViejo.cloudinary_id}`);
+                await cloudinary.uploader.destroy(consultorioViejo.cloudinary_id, { resource_type: 'video' });
+            }
         }
 
         res.json({
             ok: true,
-            msg: 'Video subida y procesado en Cloudinary con éxito',
-            url: urlVideo
+            msg: 'Video subido y optimizado en Cloudinary con éxito',
+            url: urlVideoFinal
         });
 
     } catch (error) {
