@@ -15,11 +15,8 @@ const {
     listarProyectPorSpeciality,
     checkExistenceByName
 } = require('../controllers/doctorController.js');
-const { enviarCorreoAccesosSaaS } = require('../controllers/prospectoController.js'); 
 
 const { validarJWT } = require('../middlewares/validar-jwt');
-const { check } = require('express-validator');
-const { validarCampos } = require('../middlewares/validar-campos');
 
 router.get('/',  
     validarJWT, 

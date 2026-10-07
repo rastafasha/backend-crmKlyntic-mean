@@ -387,68 +387,6 @@ async function enviarCorreoViaAPI(toEmail, toName, subject, htmlBody) {
   return response.data;
 }
 
-/**
- * 🟢 NUEVO: Envía el correo automático con las credenciales de acceso cuando el doctor es APROBADO
- */
-const enviarCorreoAccesosSaaS = async (datos) => {
-  const { email, nombre, phone, nombreComercial, url, esEnterprise } = datos;
-
-  const subjectLine = `¡Tu infraestructura médica en Klyntic ya está lista! 🚀`;
-
-  const htmlBody = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tus Accesos Klyntic</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f5f5f7; margin: 0; padding: 40px 20px; color: #1d1d1f; }
-    .card { max-width: 550px; background: #ffffff; border-radius: 18px; padding: 40px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    .logo { text-align: center; margin-bottom: 30px; }
-    h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 20px; color: #1d1d1f; text-align: center; }
-    p { font-size: 15px; line-height: 1.5; color: #515154; margin-bottom: 16px; }
-    .box { background: #f5f5f7; border-radius: 12px; padding: 20px; margin: 25px 0; border: 1px solid #e8e8ed; }
-    .box-item { font-size: 14px; margin-bottom: 10px; color: #1d1d1f; }
-    .box-item:last-child { margin-bottom: 0; }
-    .btn { display: block; text-align: center; background: #0071e3; color: #ffffff !important; padding: 14px 24px; font-size: 15px; font-weight: 500; border-radius: 10px; text-decoration: none; margin: 30px 0 15px 0; }
-    .footer { text-align: center; font-size: 12px; color: #86868b; margin-top: 30px; line-height: 1.4; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div class="logo">
-      <img src="https://consultorio.klyntic.com/assets/img/logoklyntic.png" width="120" alt="Klyntic" />
-    </div>
-    <h1>Hola, Dr(a). ${nombre}</h1>
-    <p>Nos complace informarle que su espacio de trabajo personalizado dentro de nuestro ecosistema global ha sido configurado y aprobado con éxito.</p>
-    <p>A partir de este momento, puede acceder a la administración de su centro médico con las siguientes credenciales:</p>
-    
-    <div class="box">
-      <div class="box-item">🏢 <strong>Entidad / Clínica:</strong> ${nombreComercial}</div>
-      <div class="box-item">📧 <strong>Usuario de Ingreso:</strong> ${email}</div>
-      <div class="box-item">📧 <strong>Contraseña:</strong> ${phone}</div>
-      <div class="box-item">⚙️ <strong>Nivel de Plan:</strong> ${esEnterprise ? 'ENTERPRISE MULTI-SEDE' : 'EXPRESS DIGITAL'}</div>
-    </div>
-
-    <p>${esEnterprise 
-      ? 'Su panel corporativo ya cuenta con los roles avanzados para su recepción central y el motor de liquidación automatizada de comisiones médicas.' 
-      : 'Su enlace ya está optimizado para ser colocado en las biografías de sus redes sociales, permitiendo que sus pacientes agenden citas de forma digital de inmediato.'}</p>
-
-    <a href="${url}" target="_blank" class="btn">Ingresar al Sistema</a>
-
-    <div class="footer">
-      Toda la información médica procesada es estrictamente confidenciales.<br>
-      © 2026 Klyntic. Todos los derechos reservados.
-    </div>
-  </div>
-</body>
-</html>
-  `;
-
-  // Reutilizamos tu motor HTTP de Mailjet nativo del archivo
-  return await enviarCorreoViaAPI(email, nombre, subjectLine, htmlBody);
-};
 
 
 // Exportación formal de los 4 métodos unificados
@@ -456,6 +394,5 @@ module.exports = {
   obtenerDoctoresCRM,
   enviarCorreoIndividual,
   enviarCampañaMasivaDoctores,
-  enviarCorreoAccesosSaaS
 };
 
