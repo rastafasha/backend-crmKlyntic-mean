@@ -4,6 +4,51 @@ const Speciality = require('../models/speciality');
 const Consultorio = require('../models/consultorio'); // Importamos el nuevo modelo de SaaS [12]
 
 
+// =========================================================================
+// ✉️ HELPER INTERNO PARA MAILJET (Evita errores de importación ausente)
+// =========================================================================
+const enviarCorreoAccesosSaaS = async ({ email, nombre, phone, nombreComercial, url, esEnterprise }) => {
+    const MAILJET_API_KEY = process.env.SMTP_USER;
+    const MAILJET_SECRET_KEY = process.env.SMTP_PASS;
+    const auth = Buffer.from(`${MAILJET_API_KEY}:${MAILJET_SECRET_KEY}`).toString('base64');
+
+    const planSuscripcion = esEnterprise ? 'ENTERPRISE' : 'GRATIS';
+
+    const htmlBody = `
+    <div style="font-family: sans-serif; padding: 30px; background: #f5f5f7; color: #1d1d1f;">
+        <div style="max-width: 500px; background: #ffffff; padding: 30px; border-radius: 14px; margin: 0 auto;">
+            <h2 style="text-align: center; color: #6366f1;">¡Tu acceso a Klyntic está listo! 🚀</h2>
+            <p>Hola, <strong>Dr(a). ${nombre}</strong>,</p>
+            <p>Su espacio de trabajo corporativo ha sido configurado y aprobado de forma exitosa.</p>
+            <div style="background: #f5f5f7; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                🏢 <strong>Entidad:</strong> ${nombreComercial}<br>
+                📧 <strong>Usuario:</strong> ${email}<br>
+                📧 <strong>Contraseña:</strong> ${phone}<br>
+                ⚙️ <strong>Plan:</strong> ${planSuscripcion}
+            </div>
+            <p style="text-align: center; margin: 30px 0;">
+                <a href="${url}" target="_blank" style="background: #0071e3; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Ingresar al Sistema</a>
+            </p>
+            <p style="font-size: 12px; color: #86868b; text-align: center;">Infraestructura Segura Multi-Tenant — Klyntic</p>
+        </div>
+    </div>`;
+
+    return axios.post('https://mailjet.com', {
+        Messages: [{
+            From: { Email: "malcolmc@klyntic.com", Name: "Klyntic" },
+            To: [{ Email: email, Name: nombre }],
+            ReplyTo: { Email: "mercadocreativo@gmail.com", Name: "Soporte Klyntic" },
+            Subject: "¡Tu infraestructura médica en Klyntic ya está lista! 🚀",
+            HTMLPart: htmlBody
+        }]
+    }, {
+        headers: {
+            'Authorization': `Basic ${auth}`,
+            'Content-Type': 'application/json'
+        }
+    });
+};
+
 const getDoctors = async (req, res) => {
     try {
         const doctors = await Doctor.find()
@@ -26,8 +71,8 @@ const getDoctors = async (req, res) => {
 const getDoctor = async (req, res) => {
     try {
         const doctor = await Doctor.findById(req.params.id)
-        .populate('speciality')
-        .populate('pais')
+            .populate('speciality')
+            .populate('pais')
 
         if (!doctor) return res.status(404).json({ msg: 'doctor not found' })
         res.json({
@@ -46,8 +91,8 @@ const getDoctorsByUser = async (req, res) => {
         const doctors = await Doctor.find({
             partners: req.params.id
         })
-        .populate('speciality')
-        .populate('pais');
+            .populate('speciality')
+            .populate('pais');
         res.json({
             ok: true,
             doctors
@@ -65,8 +110,8 @@ const createDoctor = async (req, res) => {
         // 1. RECEPTOR INTELIGENTE DE ESPECIALIDAD (Tu lógica de string a ObjectId)
         if (data.speciality && typeof data.speciality === 'string' && data.speciality.trim() !== '') {
             const nombreEspecialidad = data.speciality.trim();
-            let specialityDB = await Speciality.findOne({ 
-                nombre: { $regex: new RegExp(`^${nombreEspecialidad}$`, 'i') } 
+            let specialityDB = await Speciality.findOne({
+                nombre: { $regex: new RegExp(`^${nombreEspecialidad}$`, 'i') }
             });
 
             if (!specialityDB) {
@@ -117,9 +162,11 @@ const createDoctor = async (req, res) => {
 
 
 
+
+
 const updateDoctor = async (req, res) => {
     const id = req.params.id;
-    const uid = req.uid; // ID del operador/admin del CRM
+    const uid = req.uid;
 
     try {
         const doctorDB = await Doctor.findById(id);
@@ -136,32 +183,32 @@ const updateDoctor = async (req, res) => {
             usuario: uid
         };
 
-        // 1. Guardar la actualización del prospecto en la colección 'doctors'
         const doctorActualizado = await Doctor.findByIdAndUpdate(id, cambiosDoctor, { new: true });
 
-        // 🔥 DETECTOR DE CONVERSIÓN EXPRESS:
+        // Inicializamos la variable para retornar un link alternativo manual por si el webhook falla
+        let whatsapp_link = '';
+
         if (dataModificada.estado_seguimiento === 'APROBADO') {
-            
-            // 1. Buscamos de forma estricta si ya existe un consultorio asociado a este doctor
+
             const existeConsultorio = await Consultorio.findOne({ user_id: doctorActualizado._id });
-            
+
             let slug;
             let queryBusqueda = {};
 
+            const nombreComercial = doctorActualizado.tipoClinica === 'Clinica'
+                ? (doctorActualizado.ubicacion || 'Clinica Enterprise')
+                : `${doctorActualizado.nombre || ''} ${doctorActualizado.apellido || ''}`.trim();
+
             if (existeConsultorio) {
-                console.log(`♻️ ¡Actualización detectada! Modificando Consultorio existente ID: ${existeConsultorio._id}`);
-                // Si existe, nos aseguramos de buscar exactamente por el ID numérico interno de MongoDB para evitar clones
+                console.log(`♻️ ¡Actualización detectada! Modificando entidad existente ID: ${existeConsultorio._id}`);
                 queryBusqueda = { _id: existeConsultorio._id };
-                slug = existeConsultorio.slug; // Mantenemos su URL original intacta
+                slug = existeConsultorio.slug;
             } else {
-                console.log(`🚀 ¡Conversión detectada! Creando Consultorio Express para la Dra/Dr: ${doctorActualizado.name}`);
-                // Si no existe, la búsqueda del upsert se basará en el user_id para crearlo por primera vez
+                console.log(`🚀 ¡Conversión detectada! Creando espacio para: ${nombreComercial}`);
                 queryBusqueda = { user_id: doctorActualizado._id };
 
-                // Generación única del slug
-                const nombreCompleto = `${doctorActualizado.nombre || ''} ${doctorActualizado.apellido || ''}`.trim();
-                const nombreSlugBase = nombreCompleto || 'consultorio-medico';
-                
+                const nombreSlugBase = nombreComercial || 'centro-medico';
+
                 slug = nombreSlugBase.toLowerCase().trim()
                     .replace(/[\s]+/g, '-')
                     .replace(/[^\w\-]+/g, '')
@@ -169,46 +216,122 @@ const updateDoctor = async (req, res) => {
                     .replace(/á/g, 'a').replace(/é/g, 'e').replace(/í/g, 'i').replace(/ó/g, 'o').replace(/ú/g, 'u')
                     .replace(/ñ/g, 'n').replace(/ü/g, 'u');
 
-                // Validamos que no se repita con el de OTRA persona
                 const existeSlug = await Consultorio.findOne({ slug });
                 if (existeSlug) {
                     slug = `${slug}-${Math.floor(1000 + Math.random() * 9000)}`;
                 }
             }
 
-            // 2. Definimos los campos que se van a guardar/actualizar
+            const esEnterprise = doctorActualizado.tipoClinica === 'Clinica';
+            const planSuscripcion = esEnterprise ? 'ENTERPRISE' : 'GRATIS';
+            const statusAppActual = esEnterprise ? 'SUSCRITO' : (doctorActualizado.statusapp || 'PENDIENTE');
+
             const camposConsultorio = {
-                name: `${doctorActualizado.name}`,
+                name: nombreComercial,
                 slug: slug,
                 moneda: 'USD',
                 acepta_usd_internacional: false,
                 acepta_moneda_local: true,
-                statusapp: doctorActualizado.statusapp || 'PENDIENTE',
+                statusapp: statusAppActual,
                 ciudad: doctorActualizado.ciudad || 'Caracas',
                 address: doctorActualizado.address || 'Dirección en proceso',
                 ubicacion: doctorActualizado.ubicacion || 'Dirección en proceso',
                 phone: doctorActualizado.phone || '584120000000',
                 status: 'Activo',
                 user_id: doctorActualizado._id,
-                planSuscripcion: 'GRATIS'
+                planSuscripcion: planSuscripcion
             };
 
-            // 3. OPERACIÓN UPSERT REFORZADA: 
-            // Si encontró por queryBusqueda (id del consultorio), reemplaza los datos. Si no, crea usando el user_id.
             const consultorioFinal = await Consultorio.findOneAndUpdate(
                 queryBusqueda,
                 { $set: camposConsultorio },
                 { new: true, upsert: true }
             );
 
-            console.log(`✅ Consultorio SaaS procesado con éxito. URL: https://${consultorioFinal.slug}.klyntic.com`);
-        }
+            const urlAcceso = esEnterprise
+                ? `https://${consultorioFinal.slug}.admin.klyntic.com`
+                : `https://${consultorioFinal.slug}.klyntic.com`;
 
+            // =========================================================================
+            // ✉️ DISPARADOR DE ACCESOS AUTOMÁTICO AL APROBAR (Mailjet)
+            // =========================================================================
+            if (doctorActualizado.email && !doctorActualizado.correo_sendit) {
+                console.log(`✉️ Despachando credenciales de acceso a: ${doctorActualizado.email}`);
+
+                try {
+                    await enviarCorreoAccesosSaaS({
+                        email: doctorActualizado.email,
+                        phone: doctorActualizado.phone,
+                        nombre: doctorActualizado.nombre || 'Doctor(a)',
+                        nombreComercial: nombreComercial,
+                        url: urlAcceso,
+                        esEnterprise: esEnterprise
+                    });
+
+                    doctorActualizado.correo_sendit = true;
+                    doctorActualizado.correo_enviado = new Date().toISOString();
+                    await doctorActualizado.save();
+
+                    console.log(`✅ Correo de accesos entregado a Mailjet con éxito.`);
+                } catch (mailError) {
+                    console.error('⚠️ Error al enviar el correo automático de accesos:', mailError.message);
+                }
+            }
+
+            // =========================================================================
+            // 📲 DISPARADOR AUTOMÁTICO DE CREDENCIALES VÍA WHATSAPP (Webhook Render)
+            // =========================================================================
+            if (doctorActualizado.phone) {
+                const mensajeBot = `✨ *KLYNTIC CONSULTORIO DIGITAL* ✨\n\n` +
+                    `👋 ¡Hola Doc! Su acceso a la plataforma ya se encuentra activo y configurado.\n\n` +
+                    `🔗 *Enlace Privado:* ${urlAcceso}\n` +
+                    `📧 *Usuario de Ingreso:* ${doctorActualizado.email}\n` +
+                    `📧 *Contraseña:* ${doctorActualizado.phone}\n\n` +
+                    `Cualquier duda o asistencia con la configuración inicial de sus agendas me avisa.`;
+
+                try {
+                    // 🔍 BUSQUEDA MAESTRA: Intentamos buscar tu consultorio administrador en la DB
+                    // Cambia 'klyntic' por el slug real que use tu cuenta administradora corporativa
+                    let consultorioAdmin = await Consultorio.findOne({ slug: 'klyntic' });
+                    
+                    // Si no existe un consultorio admin creado, generamos un ObjectId de respaldo válido
+                    // para que el microservicio receptor no rebote la petición por formato inválido.
+                    const adminId = consultorioAdmin 
+                        ? String(consultorioAdmin._id) 
+                        : "6a48458d6b613b73e4c34d02"; // 24 caracteres hexadecimales (Format ObjectId)
+
+                    await axios.post('https://back-klyntic-envios.onrender.com/api/klyntic/notificaciones/webhook-recordatorio', {
+                        consultorio_id: adminId,                               // 🟢 ID Corporativo Maestro asignado
+                        telefono: doctorActualizado.phone,                     
+                        mensaje: mensajeBot,                                   
+                        usuario: String(doctorActualizado._id).trim(),         
+                        rolDestinatario: 'DOCTOR',                                         
+                        titulo: '¡Tu acceso a Klyntic está listo! 🏥',
+                        tipo: 'AVISO_GENERAL'
+                    });
+
+                    console.log(`📲 Alerta de accesos encolada en el Webhook de WhatsApp con éxito.`);
+                } catch (wsError) {
+                    console.error('⚠️ El microservicio de envíos no respondió o está dormido:', wsError.message);
+                    
+                    // Fallback manual instantáneo si la API falla o da timeout
+                    const numeroLimpio = doctorActualizado.phone.replace(/[^\d]/g, '');
+                    whatsapp_link = `https://whatsapp.com{numeroLimpio}&text=${encodeURIComponent(mensajeBot)}`;
+                }
+            }
+
+            if (esEnterprise) {
+                console.log(`🏢 [ENTERPRISE] Clínica procesada con éxito. URL Corporativa: ${urlAcceso}`);
+            } else {
+                console.log(`[EXPRESS] Consultorio independiente procesado con éxito.URL Redes: ${urlAcceso}`);
+            }
+        }
+        // Retornamos el doctor y el link manual (si se generó en el catch)
         res.json({
             ok: true,
-            doctorActualizado
+            doctorActualizado,
+            whatsapp_link
         });
-
     } catch (error) {
         console.error('Error crítico al actualizar el doctor/crear consultorio:', error);
         res.status(500).json({
@@ -217,6 +340,7 @@ const updateDoctor = async (req, res) => {
         });
     }
 };
+
 
 
 const deleteDoctor = async (req, res) => {
@@ -256,23 +380,23 @@ const listarProyectPorSpeciality = async (req, res) => {
     try {
         const Speciality = require('../models/speciality');
         const speciality = await Speciality.findOne({ nombre: nombre });
-        
+
         if (!speciality) {
             return res.status(404).json({ message: 'Especialidad no encontrada' });
         }
-        
+
         // SOLUCIÓN: Cambiar 'category' por 'speciality' (o el nombre real del campo en tu modelo Doctor)
         let doctorsFilter = { speciality: speciality._id };
 
         if (estadoFilter) {
             doctorsFilter.estado_seguimiento = estadoFilter;
         }
-        
+
         // Ejecutar la búsqueda con el filtro corregido
         const doctors = await Doctor.find(doctorsFilter)
             .populate('speciality')
             .populate('pais');
-        
+
         return res.status(200).json({ doctors: doctors });
     } catch (err) {
         // Es más seguro enviar err.message para no exponer detalles internos del servidor
@@ -282,7 +406,7 @@ const listarProyectPorSpeciality = async (req, res) => {
 
 
 
-const checkExistenceByName = async(req, res) => {
+const checkExistenceByName = async (req, res) => {
     const { name } = req.params;
 
     try {

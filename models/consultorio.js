@@ -75,7 +75,7 @@ const ConsultorioSchema = Schema({
     // 💳 ESQUEMA DE SUSCRIPCIÓN PARA MODO EXPRESS
     planSuscripcion: {
         type: String,
-        enum: ['GRATIS', 'BASICO', 'PRO'],
+        enum: ['GRATIS', 'BASICO', 'PRO', 'ENTERPRISE'],
         default: 'GRATIS'
     },
     fechaVencimiento: { type: Date, required: false },
