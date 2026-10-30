@@ -17,6 +17,7 @@ const DoctorSchema = new mongoose.Schema(
     dondeSeEntero: { type: String, required: false, default: 'Visita de un consultor en clínica' },
     address: { type: String, required: false },
     terminos: { type: String, required: false },
+    aceptaTerminos: { type: String, required: false },
     img: { type: String, required: false },
 
     // CRM e Información de Calle
