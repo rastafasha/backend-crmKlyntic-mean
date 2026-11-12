@@ -1,6 +1,9 @@
 const nodemailer = require('nodemailer');
-const Doctor = require('../models/doctor');
 const axios = require('axios');
+const Doctor = require('../models/doctor');
+const Speciality = require('../models/speciality');
+const Pais = require('../models/pais'); // Ajusta al nombre exacto de tu modelo de País
+
 
 // Mapeamos las variables actuales de Render a la configuración de la API de Mailjet
 const MAILJET_API_KEY = process.env.SMTP_USER;  // Render leerá tu SMTP_USER como la API Key
@@ -178,7 +181,12 @@ const enviarCampañaMasivaDoctores = async (req, res) => {
         let parrafoIntroductorio = '';
         const clinicaNormalizada = doc.ubicacion ? doc.ubicacion.toUpperCase() : '';
 
-        if (clinicaNormalizada.includes('HCC') || clinicaNormalizada.includes('CARACAS')) {
+        // 1. Si viene de Instagram, usamos un gancho digital natural
+        if (doc.canal_origen === 'INSTAGRAM_GUARDADOS') {
+          parrafoIntroductorio = `Tras conocer su trayectoria profesional a través de su perfil médico, le escribimos porque actualmente estamos expandiendo el uso de <strong>Klyntic</strong> entre destacados especialistas en Caracas para eliminar por completo la transcripción manual de las consultas.`;
+        } 
+        // 2. Si viene de tus visitas presenciales en clínicas, mantenemos tu estrategia de calle
+        else if (clinicaNormalizada.includes('HCC') || clinicaNormalizada.includes('CARACAS')) {
           parrafoIntroductorio = `Tras mi reciente visita a las instalaciones del <strong>Hospital de Clínicas Caracas (HCC)</strong>, conversé con varios colegas sobre los flujos de tiempo y lo desgastante de la transcripción manual de las consultas.`;
         } else if (clinicaNormalizada.includes('RAZETTI')) {
           parrafoIntroductorio = `Con motivo de nuestra reciente visita a la <strong>Clínica Razetti</strong>, hemos extendido una invitación especial a los especialistas del centro médico para optimizar los flujos de tiempo en la transcripción de las consultas.`;
@@ -186,8 +194,8 @@ const enviarCampañaMasivaDoctores = async (req, res) => {
           parrafoIntroductorio = `A raíz de nuestro reciente acercamiento a las consultas de la <strong>Clínica Briceño Rossi</strong>, queremos presentarle una solución diseñada para optimizar los flujos de tiempo y eliminar la transcripción manual en su práctica médica diaria.`;
         }
 
-        const htmlFinal = generarPlantillaHtml(doc.name ||  doc.nombre || '', doc.apellido || '', parrafoIntroductorio);
-
+        // Pasamos los 4 argumentos en el orden exacto que espera la función
+        const htmlFinal = generarPlantillaHtml(doc.name || '', doc.nombre || '', doc.apellido || '', parrafoIntroductorio);
         // NUEVO: Definición de variables limpias para la llamada HTTP
         const targetEmail = doc.email_contacto || doc.email;
         const subjectLine = `Doctor(a) ${doc.name || doc.nombre || ''}, optimice la gestión de su consultorio con nuestro Asistente de Voz 🎙️`;
@@ -276,9 +284,9 @@ function generarPlantillaHtml(name, nombre, apellido, parrafoIntroductorio) {
                             <h1 style="color: #1e293b; font-size: 20px; font-weight: 700; margin-top: 0; margin-bottom: 20px;">Estimado(a) Dr(a). ${name || nombre},</h1>
                             <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">Espero que se encuentre muy bien.</p>
                             
-                            <!-- Párrafo de autoridad basado en el HCC y testimonios reales -->
+                           <!-- Párrafo dinámico según origen (Instagram o Visita en Clínica) -->
                             <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
-                              Le escribo porque actualmente estamos expandiendo el uso de <strong>Klyntic</strong>, un ecosistema de Inteligencia Artificial que ya opera con éxito en consulta real y está siendo utilizado por especialistas en el <strong>Anexo del Hospital de Clínicas Caracas (HCC)</strong> para eliminar por completo la transcripción manual de las consultas.
+                              ${parrafoIntroductorio}
                             </p>
                             
                             <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
@@ -341,8 +349,124 @@ function generarPlantillaHtml(name, nombre, apellido, parrafoIntroductorio) {
 
 
 
+/**
+ * 6. IMPORTAR PROSPECTOS DESDE INSTAGRAM: Adaptado exactamente a DoctorSchema
+ */
+const importarProspectosInstagram = async (req, res) => {
+  try {
+    const { prospectos } = req.body;
 
+    if (!prospectos || !Array.isArray(prospectos) || prospectos.length === 0) {
+      return res.status(400).json({
+        ok: false,
+        msg: "Debes enviar una lista válida de prospectos."
+      });
+    }
 
+    // 1. Buscamos el país Venezuela por defecto (code: 'VE') una sola vez
+    const paisDefault = await Pais.findOne({ code: 'VE' });
+
+    let insertados = 0;
+    let omitidos = 0;
+    const erroresDetalle = [];
+
+    for (const item of prospectos) {
+      try {
+        // Validar correo
+        if (!item.email || typeof item.email !== 'string' || !item.email.includes('@')) {
+          omitidos++;
+          continue;
+        }
+
+        const emailLimpio = item.email.trim().toLowerCase();
+
+        // Verificar duplicados
+        const existe = await Doctor.findOne({
+          $or: [{ email: emailLimpio }, { email_contacto: emailLimpio }]
+        });
+
+        if (existe) {
+          omitidos++;
+          continue;
+        }
+
+        // 2. RESOLVER PAÍS (Busca por código 'VE' o usa el de por defecto)
+        let paisId = paisDefault ? paisDefault._id : undefined;
+        if (item.pais && item.pais !== 'VE') {
+          const paisEncontrado = await Pais.findOne({ 
+            $or: [{ code: item.pais.toUpperCase() }, { pais: new RegExp(`^${item.pais}$`, 'i') }] 
+          });
+          if (paisEncontrado) paisId = paisEncontrado._id;
+        }
+
+        // 3. RESOLVER ESPECIALIDAD (Busca por nombre insensible a mayúsculas o la crea si no existe)
+        let specialityId = undefined;
+        const nombreEsp = (item.especialidad || item.speciality || '').trim();
+
+        if (nombreEsp) {
+          // Buscamos si ya existe (ej: "Cirugía Bucal" == "cirugia bucal")
+          let espDB = await Speciality.findOne({ 
+            nombre: { $regex: new RegExp(`^${nombreEsp}$`, 'i') } 
+          });
+
+          // Si no existe en la BD, la creamos automáticamente
+          if (!espDB) {
+            espDB = new Speciality({ nombre: nombreEsp });
+            await espDB.save();
+          }
+
+          specialityId = espDB._id;
+        }
+
+        // 4. Crear el médico con los ObjectIds reales
+        const nuevoDoctor = new Doctor({
+          nombre: item.nombre || '',
+          apellido: item.apellido || '',
+          name: item.name || `${item.nombre || ''} ${item.apellido || ''}`.trim() || 'Doctor/a',
+          email: emailLimpio,
+          email_contacto: emailLimpio,
+          phone: item.phone || '',
+          rrss: item.rrss || '',
+          ubicacion: item.ubicacion || 'Caracas',
+          ciudad: item.ciudad || 'Caracas',
+          address: item.address || '',
+          tipoClinica: item.tipoClinica || 'Consultorio',
+          pais: paisId,
+          speciality: specialityId,
+          hasVisited: false,
+          dondeSeEntero: item.dondeSeEntero || 'Prospección Digital',
+          canal_origen: item.canal_origen || 'INSTAGRAM_GUARDADOS',
+          estado_seguimiento: 'PENDIENTE',
+          statusapp: 'PENDIENTE',
+          correo_sendit: false
+        });
+
+        await nuevoDoctor.save();
+        insertados++;
+
+      } catch (errItem) {
+        omitidos++;
+        erroresDetalle.push({ email: item.email, error: errItem.message });
+      }
+    }
+
+    return res.status(200).json({
+      ok: true,
+      msg: `Importación lista: ${insertados} médicos guardados y ${omitidos} omitidos.`,
+      insertados,
+      omitidos,
+      erroresDetalle
+    });
+
+  } catch (error) {
+    console.error("Error en importarProspectosInstagram:", error);
+    return res.status(500).json({
+      ok: false,
+      msg: "Error interno al importar prospectos",
+      error: error.message
+    });
+  }
+};
 
 /**
  * Función auxiliar para enviar correos usando la API HTTP de Mailjet
@@ -394,5 +518,6 @@ module.exports = {
   obtenerDoctoresCRM,
   enviarCorreoIndividual,
   enviarCampañaMasivaDoctores,
+  importarProspectosInstagram
 };
 

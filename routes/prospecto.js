@@ -2,7 +2,8 @@ const { Router } = require('express');
 const { 
   obtenerDoctoresCRM, 
   enviarCorreoIndividual, 
-  enviarCampañaMasivaDoctores 
+  enviarCampañaMasivaDoctores,
+  importarProspectosInstagram
 } = require('../controllers/prospectoController'); // Asegúrate de que el path sea el correcto
 
 const router = Router();
@@ -16,5 +17,6 @@ router.post('/enviar-correo', enviarCorreoIndividual);
 
 // 4. Ruta para disparar el lote diario controlado de 200 correos para Mailjet (POST: /api/prospectos/enviar-masivo)
 router.post('/enviar-masivo', enviarCampañaMasivaDoctores);
+router.post('/importar', importarProspectosInstagram);
 
 module.exports = router;

@@ -49,12 +49,9 @@ const enviarCorreoAccesosSaaS = async ({ email, nombre, phone, nombreComercial, 
     });
 };
 
-const getDoctors = async (req, res) => {
+const getDoctorsGraphic = async (req, res) => {
     try {
-        const doctors = await Doctor.find()
-            .sort({ createdAt: -1 })
-            .populate('pais')
-            .populate('speciality');
+        const doctors = await Doctor.find();
         //traemos las tareas en orden de ultima fecha
         doctors.sort((a, b) => b.createdAt - a.createdAt);
 
@@ -67,6 +64,40 @@ const getDoctors = async (req, res) => {
         return res.status(500).json({ message: 'Error al obtener doctores' });
     }
 };
+
+const getDoctors = async (req, res) => {
+  try {
+    // Capturamos la página actual (por defecto 1) y el límite (por defecto 6)
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.max(1, Number(req.query.limit) || 6);
+    const skip = (page - 1) * limit;
+
+    // Ejecutamos la búsqueda paginada y el conteo total en paralelo
+    const [doctors, total] = await Promise.all([
+      Doctor.find()
+        .sort({ createdAt: -1 }) // MongoDB ya los ordena por fecha descendente
+        .skip(skip)              // Salta los registros de páginas anteriores
+        .limit(limit)            // Trae únicamente los 6 de esta página
+        .populate('pais', 'pais')        // Trae solo el campo necesario
+        .populate('speciality', 'nombre')  // Evita traer documentos pesados enteros
+        .lean(),                 // Convierte a JSON puro (hasta 3x más rápido)
+      Doctor.countDocuments()
+    ]);
+
+    return res.json({
+      ok: true,
+      doctors,
+      total, // Total de registros en BD para que NgxPagination dibuje las páginas
+      page,
+      totalPages: Math.ceil(total / limit)
+    });
+
+  } catch (error) {
+    console.error('Error en getDoctors:', error);
+    return res.status(500).json({ ok: false, message: 'Error al obtener doctores' });
+  }
+};
+
 
 const getDoctor = async (req, res) => {
     try {
@@ -444,7 +475,8 @@ module.exports = {
     updateDoctor,
     updateStatus,
     listarProyectPorSpeciality,
-    checkExistenceByName
+    checkExistenceByName,
+    getDoctorsGraphic
 
 
 };

@@ -13,7 +13,8 @@ const {
     updateDoctor,
     updateStatus,
     listarProyectPorSpeciality,
-    checkExistenceByName
+    checkExistenceByName,
+    getDoctorsGraphic
 } = require('../controllers/doctorController.js');
 
 const { validarJWT } = require('../middlewares/validar-jwt');
@@ -21,6 +22,9 @@ const { validarJWT } = require('../middlewares/validar-jwt');
 router.get('/',  
     validarJWT, 
     getDoctors);
+router.get('/graphics',  
+    validarJWT, 
+    getDoctorsGraphic);
 router.get('/user/:id',   getDoctorsByUser);
 router.get('/speciality/:nombre', listarProyectPorSpeciality);
 router.get('/existencia/:name', checkExistenceByName);
