@@ -12,7 +12,7 @@ const DoctorSchema = new mongoose.Schema(
     // Cambiado a String para permitir guardar la especialidad a pie (ej: "Cardiología") sin obligar a crear un ID primero
     speciality: { type: Schema.Types.ObjectId, ref: "speciality" },
     
-    email: { type: String, required: false, unique: true }, // unique para evitar cargar dos veces al mismo médico
+    email: { type: String, unique: true, sparse: true }, // unique para evitar cargar dos veces al mismo médico
     rrss: { type: String, required: false },
     dondeSeEntero: { type: String, required: false, default: 'Visita de un consultor en clínica' },
     address: { type: String, required: false },

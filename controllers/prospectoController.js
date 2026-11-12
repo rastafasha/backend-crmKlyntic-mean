@@ -372,25 +372,33 @@ const importarProspectosInstagram = async (req, res) => {
 
     for (const item of prospectos) {
       try {
-        // Validar correo
-        if (!item.email || typeof item.email !== 'string' || !item.email.includes('@')) {
+        const tieneEmailValido = item.email && typeof item.email === 'string' && item.email.includes('@');
+        const emailLimpio = tieneEmailValido ? item.email.trim().toLowerCase() : undefined;
+
+        // 1. Validar que tenga al menos correo, Instagram (rrss) o teléfono
+        if (!emailLimpio && !item.rrss && !item.phone) {
           omitidos++;
           continue;
         }
 
-        const emailLimpio = item.email.trim().toLowerCase();
-
-        // Verificar duplicados
-        const existe = await Doctor.findOne({
-          $or: [{ email: emailLimpio }, { email_contacto: emailLimpio }]
-        });
-
-        if (existe) {
-          omitidos++;
-          continue;
+        // 2. Verificar duplicados según los datos disponibles
+        const condicionesDuplicado = [];
+        if (emailLimpio) {
+          condicionesDuplicado.push({ email: emailLimpio }, { email_contacto: emailLimpio });
+        }
+        if (item.rrss) {
+          condicionesDuplicado.push({ rrss: item.rrss.trim() });
         }
 
-        // 2. RESOLVER PAÍS (Busca por código 'VE' o usa el de por defecto)
+        if (condicionesDuplicado.length > 0) {
+          const existe = await Doctor.findOne({ $or: condicionesDuplicado });
+          if (existe) {
+            omitidos++;
+            continue;
+          }
+        }
+
+        // 3. RESOLVER PAÍS (Busca por código 'VE' o usa el de por defecto)
         let paisId = paisDefault ? paisDefault._id : undefined;
         if (item.pais && item.pais !== 'VE') {
           const paisEncontrado = await Pais.findOne({ 
@@ -399,17 +407,15 @@ const importarProspectosInstagram = async (req, res) => {
           if (paisEncontrado) paisId = paisEncontrado._id;
         }
 
-        // 3. RESOLVER ESPECIALIDAD (Busca por nombre insensible a mayúsculas o la crea si no existe)
+        // 4. RESOLVER ESPECIALIDAD (Busca o crea automáticamente)
         let specialityId = undefined;
-        const nombreEsp = (item.especialidad || item.speciality || '').trim();
+        const nombreEsp = (item.especialidad || item.speciality || 'Sin Especialidad').trim();
 
         if (nombreEsp) {
-          // Buscamos si ya existe (ej: "Cirugía Bucal" == "cirugia bucal")
           let espDB = await Speciality.findOne({ 
             nombre: { $regex: new RegExp(`^${nombreEsp}$`, 'i') } 
           });
 
-          // Si no existe en la BD, la creamos automáticamente
           if (!espDB) {
             espDB = new Speciality({ nombre: nombreEsp });
             await espDB.save();
@@ -418,13 +424,13 @@ const importarProspectosInstagram = async (req, res) => {
           specialityId = espDB._id;
         }
 
-        // 4. Crear el médico con los ObjectIds reales
+        // 5. Crear el médico (usando undefined en email si no tiene, para respetar sparse: true)
         const nuevoDoctor = new Doctor({
           nombre: item.nombre || '',
           apellido: item.apellido || '',
           name: item.name || `${item.nombre || ''} ${item.apellido || ''}`.trim() || 'Doctor/a',
           email: emailLimpio,
-          email_contacto: emailLimpio,
+          email_contacto: emailLimpio || '',
           phone: item.phone || '',
           rrss: item.rrss || '',
           ubicacion: item.ubicacion || 'Caracas',
@@ -446,7 +452,7 @@ const importarProspectosInstagram = async (req, res) => {
 
       } catch (errItem) {
         omitidos++;
-        erroresDetalle.push({ email: item.email, error: errItem.message });
+        erroresDetalle.push({ name: item.name, email: item.email, error: errItem.message });
       }
     }
 
