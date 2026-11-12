@@ -370,6 +370,8 @@ const importarProspectosInstagram = async (req, res) => {
     let omitidos = 0;
     const erroresDetalle = [];
 
+   
+
     for (const item of prospectos) {
       try {
         const tieneEmailValido = item.email && typeof item.email === 'string' && item.email.includes('@');
@@ -381,13 +383,20 @@ const importarProspectosInstagram = async (req, res) => {
           continue;
         }
 
+        // 1. Normalizar rrss afuera para usarlo en duplicados y al guardar
+       let rrssLimpio = (item.rrss || '').trim();
+        if (rrssLimpio && !rrssLimpio.startsWith('http')) {
+          const handle = rrssLimpio.replace(/^@/, '').replace(/\//g, '');
+          rrssLimpio = `https://www.instagram.com/${handle}`;
+}
+
         // 2. Verificar duplicados según los datos disponibles
         const condicionesDuplicado = [];
         if (emailLimpio) {
           condicionesDuplicado.push({ email: emailLimpio }, { email_contacto: emailLimpio });
         }
-        if (item.rrss) {
-          condicionesDuplicado.push({ rrss: item.rrss.trim() });
+         if (rrssLimpio) {
+          condicionesDuplicado.push({ rrss: rrssLimpio });
         }
 
         if (condicionesDuplicado.length > 0) {
@@ -432,7 +441,7 @@ const importarProspectosInstagram = async (req, res) => {
           email: emailLimpio,
           email_contacto: emailLimpio || '',
           phone: item.phone || '',
-          rrss: item.rrss || '',
+          rrss: rrssLimpio || '',
           ubicacion: item.ubicacion || 'Caracas',
           ciudad: item.ciudad || 'Caracas',
           address: item.address || '',
