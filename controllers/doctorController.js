@@ -171,6 +171,7 @@ const createDoctor = async (req, res) => {
         // 🟢 3. CONSTRUCCIÓN SEGURA DEL MODELO
         const doctor = new Doctor({
             usuario: uid,
+            email_contacto: req.body.email,
             ...data, // Mantiene todos los campos nativos del formulario (incluyendo data.ciudad)
             ubicacion: ubicacionFinal // Sobreescribimos la ubicación de forma inteligente
         });
@@ -211,6 +212,7 @@ const updateDoctor = async (req, res) => {
         const dataModificada = req.body;
         const cambiosDoctor = {
             ...dataModificada,
+            email_contacto: req.body.email,
             usuario: uid
         };
 
